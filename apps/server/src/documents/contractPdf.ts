@@ -1,5 +1,5 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import type { ApplicationForm, Course } from "@meridian/shared";
+import { formatCourseDate, type ApplicationForm, type Course } from "@meridian/shared";
 import { embedCyrillicFonts } from "./fonts.js";
 import { formatSignedAt } from "./formatDate.js";
 
@@ -66,7 +66,7 @@ export async function generateContractPdf(
 
   drawLine("1. Предмет договора", { size: 13, font: bold, gap: 6 });
   drawLine(
-    `Исполнитель обязуется оказать услуги по программе дополнительного профессионального образования «${course.title}» объёмом ${course.hours} ак. ч. в срок с ${course.durationFrom} по ${course.durationTo}, а Заказчик обязуется оплатить указанные услуги.`,
+    `Исполнитель обязуется оказать услуги по программе дополнительного профессионального образования «${course.title}» объёмом ${course.hours} ак. ч. в срок с ${formatCourseDate(course.durationFrom)} по ${formatCourseDate(course.durationTo)}, а Заказчик обязуется оплатить указанные услуги.`,
     { gap: 16 }
   );
 

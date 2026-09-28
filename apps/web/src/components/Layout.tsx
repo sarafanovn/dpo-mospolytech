@@ -48,8 +48,11 @@ export function Layout() {
             <div className="sidebar-user-name">{user?.fullName}</div>
             <div className="sidebar-user-role">{user?.role === "admin" ? "Администратор" : "Обучающийся"}</div>
           </div>
-          <button className="btn btn-ghost" onClick={handleLogout}>
-            Выйти
+          <button className="icon-btn icon-btn-danger" onClick={handleLogout} aria-label="Выйти" title="Выйти">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M15 17v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v1" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 12h11m0 0-3.5-3.5M21 12l-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
       </aside>

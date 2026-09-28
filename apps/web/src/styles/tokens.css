@@ -138,6 +138,31 @@ a {
   color: var(--ink);
 }
 
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: var(--gray-100);
+  color: var(--ink);
+}
+
+.icon-btn-danger:hover {
+  background: rgba(236, 37, 80, 0.1);
+  color: var(--crimson);
+}
+
 .card {
   background: var(--paper);
   border-radius: var(--radius-md);

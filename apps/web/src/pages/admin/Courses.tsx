@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import type { Course } from "@meridian/shared";
+import { formatCourseDate, type Course } from "@meridian/shared";
 import { api } from "../../api";
 import { ErrorState } from "../../components/ErrorState";
 import "./admin.css";
@@ -111,7 +111,7 @@ export function AdminCourses() {
               <td style={{ fontWeight: 600 }}>{c.title}</td>
               <td>{c.hours}</td>
               <td>
-                {c.durationFrom} — {c.durationTo}
+                {formatCourseDate(c.durationFrom)} — {formatCourseDate(c.durationTo)}
               </td>
               <td>
                 <div className="inline-actions">
@@ -162,7 +162,7 @@ export function AdminCourses() {
                 <label>Срок обучения (с)</label>
                 <input
                   required
-                  placeholder="дд.мм.гггг"
+                  type="date"
                   value={form.durationFrom}
                   onChange={(e) => setForm((f) => ({ ...f, durationFrom: e.target.value }))}
                 />
@@ -171,7 +171,7 @@ export function AdminCourses() {
                 <label>Срок обучения (по)</label>
                 <input
                   required
-                  placeholder="дд.мм.гггг"
+                  type="date"
                   value={form.durationTo}
                   onChange={(e) => setForm((f) => ({ ...f, durationTo: e.target.value }))}
                 />

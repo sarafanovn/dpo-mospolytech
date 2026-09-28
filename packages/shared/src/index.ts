@@ -1,5 +1,12 @@
 export type Role = "student" | "admin";
 
+// Course dates are stored as YYYY-MM-DD (native <input type="date"> format).
+export function formatCourseDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  if (!year || !month || !day) return isoDate;
+  return `${day}.${month}.${year}`;
+}
+
 export interface User {
   id: number;
   email: string;

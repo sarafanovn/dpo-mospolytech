@@ -1,5 +1,5 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import type { ApplicationForm, Course } from "@meridian/shared";
+import { formatCourseDate, type ApplicationForm, type Course } from "@meridian/shared";
 import { embedCyrillicFonts } from "./fonts.js";
 import { formatSignedAt } from "./formatDate.js";
 
@@ -56,7 +56,7 @@ export async function generateApplicationPdf(form: ApplicationForm, course: Cour
   drawLine(`от ${form.fullName}`, { size: 11, gap: 16 });
 
   drawLine(
-    `Прошу принять меня на обучение по программе «${course.title}» (${course.hours} ак. ч., срок обучения: ${course.durationFrom} — ${course.durationTo}).`,
+    `Прошу принять меня на обучение по программе «${course.title}» (${course.hours} ак. ч., срок обучения: ${formatCourseDate(course.durationFrom)} — ${formatCourseDate(course.durationTo)}).`,
     { gap: 16 }
   );
 
