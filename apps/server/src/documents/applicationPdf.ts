@@ -1,5 +1,5 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import { formatCourseDate, type ApplicationForm, type Course } from "@meridian/shared";
+import { formatIsoDate, type ApplicationForm, type Course } from "@meridian/shared";
 import { embedCyrillicFonts } from "./fonts.js";
 import { formatSignedAt } from "./formatDate.js";
 
@@ -56,14 +56,14 @@ export async function generateApplicationPdf(form: ApplicationForm, course: Cour
   drawLine(`от ${form.fullName}`, { size: 11, gap: 16 });
 
   drawLine(
-    `Прошу принять меня на обучение по программе «${course.title}» (${course.hours} ак. ч., срок обучения: ${formatCourseDate(course.durationFrom)} — ${formatCourseDate(course.durationTo)}).`,
+    `Прошу принять меня на обучение по программе «${course.title}» (${course.hours} ак. ч., срок обучения: ${formatIsoDate(course.durationFrom)} — ${formatIsoDate(course.durationTo)}).`,
     { gap: 16 }
   );
 
   drawLine("Сведения о заявителе", { size: 13, font: bold, gap: 8 });
   const fields: [string, string][] = [
     ["Ф. И. О.", form.fullName],
-    ["Дата рождения", form.birthDate],
+    ["Дата рождения", form.birthDate ? formatIsoDate(form.birthDate) : ""],
     ["Телефон", form.phone],
     ["E-mail", form.email],
     ["Паспорт", form.passport],

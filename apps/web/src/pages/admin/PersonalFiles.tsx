@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Application, Course, Enrollment } from "@meridian/shared";
+import { APPLICATION_FIELD_GROUPS, formatIsoDate, type Application, type Course, type Enrollment } from "@meridian/shared";
 import { api, ApiError } from "../../api";
 import { StatusBadge } from "../../components/StatusBadge";
 import { ErrorState } from "../../components/ErrorState";
@@ -98,10 +98,12 @@ function FileDetail({ enrollment, course }: { enrollment: Enrollment; course: Co
         Заявка №{enrollment.id} · <StatusBadge status={enrollment.status} />
       </p>
       <div className="review-grid" style={{ marginBottom: "1.5rem" }}>
-        {Object.entries(application.form).map(([key, value]) => (
-          <div key={key} className="review-item">
-            <div className="review-label">{key}</div>
-            <div className="review-value">{value}</div>
+        {APPLICATION_FIELD_GROUPS.flatMap((g) => g.fields).map((f) => (
+          <div key={f.key} className="review-item">
+            <div className="review-label">{f.label}</div>
+            <div className="review-value">
+              {f.type === "date" && application.form[f.key] ? formatIsoDate(application.form[f.key]) : application.form[f.key]}
+            </div>
           </div>
         ))}
       </div>

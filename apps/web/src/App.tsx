@@ -7,6 +7,7 @@ import { Register } from "./pages/Register";
 import { CourseList } from "./pages/student/CourseList";
 import { MyApplications } from "./pages/student/MyApplications";
 import { ApplicationWizard } from "./pages/student/ApplicationWizard";
+import { Profile } from "./pages/student/Profile";
 import { AdminCourses } from "./pages/admin/Courses";
 import { PersonalFiles } from "./pages/admin/PersonalFiles";
 import { Contracts } from "./pages/admin/Contracts";
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/student/courses" element={<CourseList />} />
           <Route path="/student/applications" element={<MyApplications />} />
           <Route path="/student/applications/:enrollmentId" element={<ApplicationWizard />} />
+          <Route path="/student/profile" element={<Profile />} />
         </Route>
 
         <Route

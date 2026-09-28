@@ -1,5 +1,5 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import { formatCourseDate, type ApplicationForm, type Course, type CertificateType } from "@meridian/shared";
+import { formatIsoDate, type ApplicationForm, type Course, type CertificateType } from "@meridian/shared";
 import { embedCyrillicFonts } from "./fonts.js";
 import { formatSignedAt } from "./formatDate.js";
 
@@ -26,7 +26,7 @@ export async function generateCertificatePdf(
   const body =
     type === "certificate"
       ? `Настоящий сертификат подтверждает, что ${form.fullName} успешно освоил(а) программу дополнительного профессионального образования «${course.title}» объёмом ${course.hours} ак. ч. в Московском Политехе.`
-      : `Дана ${form.fullName} в том, что он(а) проходит обучение по программе дополнительного профессионального образования «${course.title}» объёмом ${course.hours} ак. ч. в Московском Политехе с ${formatCourseDate(course.durationFrom)} по ${formatCourseDate(course.durationTo)}.`;
+      : `Дана ${form.fullName} в том, что он(а) проходит обучение по программе дополнительного профессионального образования «${course.title}» объёмом ${course.hours} ак. ч. в Московском Политехе с ${formatIsoDate(course.durationFrom)} по ${formatIsoDate(course.durationTo)}.`;
 
   const words = body.split(/\s+/);
   let line = "";

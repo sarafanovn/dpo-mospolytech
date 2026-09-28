@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { APPLICATION_FIELD_GROUPS, type ApplicationForm, type Course, type Enrollment } from "@meridian/shared";
+import { APPLICATION_FIELD_GROUPS, formatIsoDate, type ApplicationForm, type Course, type Enrollment } from "@meridian/shared";
 import { api, ApiError } from "../../api";
+import { useAuth } from "../../AuthContext";
 import { StatusBadge } from "../../components/StatusBadge";
 import { ErrorState } from "../../components/ErrorState";
 import "./student.css";
@@ -29,6 +30,7 @@ type Stage = "form" | "sign" | "documents";
 export function ApplicationWizard() {
   const { enrollmentId } = useParams<{ enrollmentId: string }>();
   const id = Number(enrollmentId);
+  const { user } = useAuth();
 
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
@@ -58,7 +60,16 @@ export function ApplicationWizard() {
           setSignedAt(application.signedAt);
         } catch (err) {
           if (!(err instanceof ApiError && err.status === 404)) throw err;
-          // no application yet — start from the blank form
+          // No application yet — prefill from the saved profile instead of a blank form.
+          if (user) {
+            setForm((f) => ({
+              ...f,
+              fullName: user.fullName || f.fullName,
+              phone: user.phone || f.phone,
+              email: user.email || f.email,
+              birthDate: user.birthDate || f.birthDate,
+            }));
+          }
         }
       } catch (err) {
         if (!cancelled) setLoadError(err instanceof Error ? err.message : "Не удалось загрузить заявку");
@@ -194,7 +205,7 @@ export function ApplicationWizard() {
             {APPLICATION_FIELD_GROUPS.flatMap((g) => g.fields).map((f) => (
               <div key={f.key} className="review-item">
                 <div className="review-label">{f.label}</div>
-                <div className="review-value">{form[f.key]}</div>
+                <div className="review-value">{f.type === "date" && form[f.key] ? formatIsoDate(form[f.key]) : form[f.key]}</div>
               </div>
             ))}
           </div>

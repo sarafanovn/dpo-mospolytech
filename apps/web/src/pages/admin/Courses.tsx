@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { formatCourseDate, type Course } from "@meridian/shared";
+import { formatIsoDate, type Course } from "@meridian/shared";
 import { api } from "../../api";
 import { ErrorState } from "../../components/ErrorState";
 import "./admin.css";
@@ -111,7 +111,7 @@ export function AdminCourses() {
               <td style={{ fontWeight: 600 }}>{c.title}</td>
               <td>{c.hours}</td>
               <td>
-                {formatCourseDate(c.durationFrom)} — {formatCourseDate(c.durationTo)}
+                {formatIsoDate(c.durationFrom)} — {formatIsoDate(c.durationTo)}
               </td>
               <td>
                 <div className="inline-actions">

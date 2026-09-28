@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { formatCourseDate, type Course, type Enrollment } from "@meridian/shared";
+import { formatIsoDate, type Course, type Enrollment } from "@meridian/shared";
 import { api } from "../../api";
 import { ErrorState } from "../../components/ErrorState";
 import "./student.css";
@@ -61,7 +61,7 @@ export function CourseList() {
               <div className="badge badge-blue">{course.hours} ак. ч.</div>
               <h3 style={{ fontSize: "1.125rem", margin: "0.75rem 0 0.375rem" }}>{course.title}</h3>
               <p style={{ color: "var(--gray-500)", fontSize: "0.8125rem", margin: "0 0 0.375rem" }}>
-                {formatCourseDate(course.durationFrom)} — {formatCourseDate(course.durationTo)}
+                {formatIsoDate(course.durationFrom)} — {formatIsoDate(course.durationTo)}
               </p>
               <p style={{ fontSize: "0.875rem", margin: "0 0 1.25rem", flex: 1 }}>{course.description}</p>
               {enrollment ? (

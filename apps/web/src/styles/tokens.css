@@ -207,6 +207,12 @@ a {
   border-color: var(--crimson);
 }
 
+.field input:disabled {
+  background: var(--gray-50);
+  color: var(--gray-500);
+  cursor: not-allowed;
+}
+
 .field textarea {
   resize: vertical;
   min-height: 4rem;

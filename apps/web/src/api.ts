@@ -42,6 +42,8 @@ export const api = {
     request<User>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
   me: () => request<User>("/auth/me"),
+  updateProfile: (data: { fullName: string; phone: string; birthDate: string }) =>
+    request<User>("/auth/me", { method: "PATCH", body: JSON.stringify(data) }),
 
   courses: {
     list: () => request<Course[]>("/courses"),

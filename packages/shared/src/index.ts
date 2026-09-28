@@ -1,7 +1,7 @@
 export type Role = "student" | "admin";
 
-// Course dates are stored as YYYY-MM-DD (native <input type="date"> format).
-export function formatCourseDate(isoDate: string): string {
+// Dates entered via native <input type="date"> are stored as YYYY-MM-DD; format for display.
+export function formatIsoDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
   if (!year || !month || !day) return isoDate;
   return `${day}.${month}.${year}`;
@@ -11,6 +11,8 @@ export interface User {
   id: number;
   email: string;
   fullName: string;
+  phone: string | null;
+  birthDate: string | null;
   role: Role;
   createdAt: string;
 }
@@ -82,7 +84,7 @@ export interface Certificate {
 
 export const APPLICATION_FIELD_GROUPS: {
   title: string;
-  fields: { key: keyof ApplicationForm; label: string; hint: string; type: "text" | "tel" | "email" | "textarea" | "select"; options?: string[] }[];
+  fields: { key: keyof ApplicationForm; label: string; hint: string; type: "text" | "tel" | "email" | "date" | "textarea" | "select"; options?: string[] }[];
 }[] = [
   {
     title: "Личные данные",
@@ -90,7 +92,7 @@ export const APPLICATION_FIELD_GROUPS: {
       { key: "fullName", label: "Ф. И. О. (полностью)", hint: "Иванов Иван Иванович", type: "text" },
       { key: "phone", label: "Телефон", hint: "+7 (___) ___-__-__", type: "tel" },
       { key: "email", label: "e-mail", hint: "iv@an.ru", type: "email" },
-      { key: "birthDate", label: "Дата рождения", hint: "дд.мм.гггг", type: "text" },
+      { key: "birthDate", label: "Дата рождения", hint: "", type: "date" },
     ],
   },
   {

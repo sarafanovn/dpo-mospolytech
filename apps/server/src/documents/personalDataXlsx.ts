@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import type { ApplicationForm } from "@meridian/shared";
+import { formatIsoDate, type ApplicationForm } from "@meridian/shared";
 
 export async function generatePersonalDataXlsx(form: ApplicationForm): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
@@ -14,7 +14,7 @@ export async function generatePersonalDataXlsx(form: ApplicationForm): Promise<B
     ["Ф. И. О.", form.fullName],
     ["Телефон", form.phone],
     ["E-mail", form.email],
-    ["Дата рождения", form.birthDate],
+    ["Дата рождения", form.birthDate ? formatIsoDate(form.birthDate) : ""],
     ["Паспорт", form.passport],
     ["Выдан", form.passportIssuedBy],
     ["Адрес регистрации", form.addressRegistration],

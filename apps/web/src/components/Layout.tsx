@@ -6,6 +6,7 @@ import "./Layout.css";
 const STUDENT_NAV = [
   { to: "/student/courses", label: "Курсы ДПО" },
   { to: "/student/applications", label: "Мои заявки" },
+  { to: "/student/profile", label: "Профиль" },
 ];
 
 const ADMIN_NAV = [
