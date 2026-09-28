@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
+import { PasswordField } from "../components/PasswordField";
 import logoBlack from "../assets/logo-black.svg";
 import pattern from "../assets/pattern-1.svg";
 import "./Auth.css";
@@ -57,16 +58,7 @@ export function Login() {
                 placeholder="iv@an.ru"
               />
             </div>
-            <div className="field">
-              <label htmlFor="password">Пароль</label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            <PasswordField label="Пароль" value={password} onChange={setPassword} required />
             {error && <div className="error-banner">{error}</div>}
             <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: "100%" }}>
               {submitting ? "Входим…" : "Войти"}
