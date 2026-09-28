@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "../db.js";
-import { signSession, setSessionCookie, clearSessionCookie, requireAuth } from "../auth.js";
+import { signSession, setSessionCookie, clearSessionCookie, requireAuth, requireRole } from "../auth.js";
 import type { User } from "@meridian/shared";
 
 export const authRouter = Router();
@@ -11,7 +11,6 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   fullName: z.string().min(2),
-  role: z.enum(["student", "admin"]).default("student"),
 });
 
 interface UserRow {
@@ -39,7 +38,7 @@ authRouter.post("/register", (req, res) => {
     res.status(400).json({ error: "Некорректные данные", details: parsed.error.flatten() });
     return;
   }
-  const { email, password, fullName, role } = parsed.data;
+  const { email, password, fullName } = parsed.data;
 
   const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
   if (existing) {
@@ -49,12 +48,36 @@ authRouter.post("/register", (req, res) => {
 
   const passwordHash = bcrypt.hashSync(password, 10);
   const info = db
-    .prepare("INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)")
-    .run(email, passwordHash, fullName, role);
+    .prepare("INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, 'student')")
+    .run(email, passwordHash, fullName);
 
   const row = db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid) as UserRow;
   const token = signSession({ userId: row.id, role: row.role });
   setSessionCookie(res, token);
+  res.status(201).json(toUser(row));
+});
+
+// Admin accounts are provisioned by an existing admin, never via public self-registration.
+authRouter.post("/admins", requireAuth, requireRole("admin"), (req, res) => {
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Некорректные данные", details: parsed.error.flatten() });
+    return;
+  }
+  const { email, password, fullName } = parsed.data;
+
+  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  if (existing) {
+    res.status(409).json({ error: "Пользователь с таким email уже существует" });
+    return;
+  }
+
+  const passwordHash = bcrypt.hashSync(password, 10);
+  const info = db
+    .prepare("INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, 'admin')")
+    .run(email, passwordHash, fullName);
+
+  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid) as UserRow;
   res.status(201).json(toUser(row));
 });
 

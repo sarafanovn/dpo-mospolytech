@@ -11,7 +11,6 @@ export function Register() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"student" | "admin">("student");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,8 +19,8 @@ export function Register() {
     setError(null);
     setSubmitting(true);
     try {
-      const user = await register(email, password, fullName, role);
-      navigate(user.role === "admin" ? "/admin/courses" : "/student/courses");
+      await register(email, password, fullName);
+      navigate("/student/courses");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось зарегистрироваться");
     } finally {
@@ -73,13 +72,6 @@ export function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div>
-            <div className="field">
-              <label htmlFor="role">Тип аккаунта</label>
-              <select id="role" value={role} onChange={(e) => setRole(e.target.value as "student" | "admin")}>
-                <option value="student">Обучающийся</option>
-                <option value="admin">Администратор</option>
-              </select>
             </div>
             {error && <div className="auth-error">{error}</div>}
             <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: "100%" }}>

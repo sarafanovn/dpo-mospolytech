@@ -6,7 +6,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, password: string, fullName: string, role: "student" | "admin") => Promise<User>;
+  register: (email: string, password: string, fullName: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -30,14 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return u;
   }, []);
 
-  const register = useCallback(
-    async (email: string, password: string, fullName: string, role: "student" | "admin") => {
-      const u = await api.register({ email, password, fullName, role });
-      setUser(u);
-      return u;
-    },
-    []
-  );
+  const register = useCallback(async (email: string, password: string, fullName: string) => {
+    const u = await api.register({ email, password, fullName });
+    setUser(u);
+    return u;
+  }, []);
 
   const logout = useCallback(async () => {
     await api.logout();
