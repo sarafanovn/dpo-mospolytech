@@ -35,7 +35,7 @@ export function MyApplications() {
   return (
     <div>
       <div className="eyebrow">Мои заявки</div>
-      <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Заявки на обучение</h1>
+      <h1 className="page-title">Заявки на обучение</h1>
       {enrollments.length === 0 && (
         <p style={{ color: "var(--gray-500)" }}>
           У вас пока нет заявок. <Link to="/student/courses">Выберите курс</Link>, чтобы начать.
@@ -48,7 +48,7 @@ export function MyApplications() {
             <Link key={enrollment.id} to={`/student/applications/${enrollment.id}`} className="card list-row">
               <div>
                 <div style={{ fontWeight: 700 }}>{course?.title ?? "Курс"}</div>
-                <div style={{ fontSize: 13, color: "var(--gray-500)" }}>
+                <div style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>
                   Подана {new Date(enrollment.createdAt).toLocaleDateString("ru-RU")}
                 </div>
               </div>

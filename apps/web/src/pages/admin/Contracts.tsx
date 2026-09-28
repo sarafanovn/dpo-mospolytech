@@ -63,9 +63,9 @@ export function Contracts() {
   return (
     <div>
       <div className="eyebrow">Администрирование</div>
-      <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Договоры</h1>
+      <h1 className="page-title">Договоры</h1>
 
-      {actionError && <div style={{ marginBottom: 20 }}><ErrorState message={actionError} /></div>}
+      {actionError && <div style={{ marginBottom: "1.25rem" }}><ErrorState message={actionError} /></div>}
 
       <table className="admin-table">
         <thead>

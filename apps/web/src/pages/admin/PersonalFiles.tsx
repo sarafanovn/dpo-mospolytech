@@ -37,7 +37,7 @@ export function PersonalFiles() {
   return (
     <div>
       <div className="eyebrow">Администрирование</div>
-      <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Личные дела</h1>
+      <h1 className="page-title">Личные дела</h1>
 
       <div className="detail-panel">
         <div className="list-stack">
@@ -52,7 +52,7 @@ export function PersonalFiles() {
               >
                 <div>
                   <div style={{ fontWeight: 700 }}>Заявка №{enrollment.id}</div>
-                  <div style={{ fontSize: 13, color: "var(--gray-500)" }}>{course?.title}</div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>{course?.title}</div>
                 </div>
                 <StatusBadge status={enrollment.status} />
               </button>
@@ -93,11 +93,11 @@ function FileDetail({ enrollment, course }: { enrollment: Enrollment; course: Co
 
   return (
     <div className="card">
-      <h2 style={{ fontSize: 18, marginBottom: 4 }}>{course?.title}</h2>
-      <p style={{ color: "var(--gray-500)", fontSize: 13, marginBottom: 20 }}>
+      <h2 style={{ fontSize: "1.125rem", marginBottom: "0.25rem" }}>{course?.title}</h2>
+      <p style={{ color: "var(--gray-500)", fontSize: "0.8125rem", marginBottom: "1.25rem" }}>
         Заявка №{enrollment.id} · <StatusBadge status={enrollment.status} />
       </p>
-      <div className="review-grid" style={{ marginBottom: 24 }}>
+      <div className="review-grid" style={{ marginBottom: "1.5rem" }}>
         {Object.entries(application.form).map(([key, value]) => (
           <div key={key} className="review-item">
             <div className="review-label">{key}</div>

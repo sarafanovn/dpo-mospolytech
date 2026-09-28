@@ -36,7 +36,7 @@ export function Register() {
           <div className="eyebrow" style={{ color: "rgba(255,255,255,0.7)" }}>
             Московский Политех
           </div>
-          <h1 style={{ color: "#fff", fontSize: 34, marginTop: 12 }}>
+          <h1 style={{ color: "#fff", fontSize: "2.125rem", marginTop: "0.75rem" }}>
             Портал информационной поддержки ДПО
           </h1>
         </div>
@@ -45,7 +45,7 @@ export function Register() {
         <img src={logoBlack} alt="Московский Политех" className="auth-logo" />
         <div className="card auth-card">
           <div className="eyebrow">Регистрация</div>
-          <h2 style={{ fontSize: 24, marginTop: 8, marginBottom: 24 }}>Создать аккаунт</h2>
+          <h2 style={{ fontSize: "1.5rem", marginTop: "0.5rem", marginBottom: "1.5rem" }}>Создать аккаунт</h2>
           <form onSubmit={handleSubmit}>
             <div className="field">
               <label htmlFor="fullName">Ф. И. О.</label>

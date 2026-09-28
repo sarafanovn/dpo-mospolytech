@@ -87,14 +87,14 @@ export function AdminCourses() {
       <div className="admin-header">
         <div>
           <div className="eyebrow">Администрирование</div>
-          <h1 style={{ fontSize: 28, marginTop: 8 }}>Курсы ДПО</h1>
+          <h1 style={{ fontSize: "1.75rem", marginTop: "0.5rem" }}>Курсы ДПО</h1>
         </div>
         <button className="btn btn-primary" onClick={openCreate}>
           Добавить курс
         </button>
       </div>
 
-      {deleteError && <div style={{ marginBottom: 20 }}><ErrorState message={deleteError} /></div>}
+      {deleteError && <div style={{ marginBottom: "1.25rem" }}><ErrorState message={deleteError} /></div>}
 
       <table className="admin-table">
         <thead>
@@ -138,7 +138,7 @@ export function AdminCourses() {
       {modalOpen && (
         <div className="modal-backdrop" onClick={() => setModalOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: 18, marginBottom: 20 }}>{editing ? "Изменить курс" : "Новый курс"}</h2>
+            <h2 style={{ fontSize: "1.125rem", marginBottom: "1.25rem" }}>{editing ? "Изменить курс" : "Новый курс"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="field">
                 <label>Название программы</label>
@@ -184,7 +184,7 @@ export function AdminCourses() {
                 />
               </div>
               {formError && <div className="error-banner">{formError}</div>}
-              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>
                   Отмена
                 </button>

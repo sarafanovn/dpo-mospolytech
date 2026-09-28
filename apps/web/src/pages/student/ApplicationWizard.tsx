@@ -127,13 +127,13 @@ export function ApplicationWizard() {
   return (
     <div>
       <div className="eyebrow">Заявка на обучение</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, marginBottom: 28 }}>
-        <h1 style={{ fontSize: 28 }}>{course.title}</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.5rem", marginBottom: "1.75rem" }}>
+        <h1 style={{ fontSize: "1.75rem" }}>{course.title}</h1>
         <StatusBadge status={enrollment.status} />
       </div>
 
       {stage === "form" && (
-        <div className="card" style={{ maxWidth: 680 }}>
+        <div className="card" style={{ maxWidth: "42.5rem" }}>
           <div className="wizard-steps">
             {APPLICATION_FIELD_GROUPS.map((group, i) => (
               <div key={group.title} className={`wizard-step${i === step ? " active" : ""}${i < step ? " done" : ""}`}>
@@ -141,7 +141,7 @@ export function ApplicationWizard() {
               </div>
             ))}
           </div>
-          <h2 style={{ fontSize: 18, marginBottom: 20 }}>{currentGroup.title}</h2>
+          <h2 style={{ fontSize: "1.125rem", marginBottom: "1.25rem" }}>{currentGroup.title}</h2>
           {currentGroup.fields.map((f) => (
             <div className="field" key={f.key}>
               <label htmlFor={f.key}>{f.label}</label>
@@ -170,7 +170,7 @@ export function ApplicationWizard() {
             </div>
           ))}
           {error && <div className="error-banner">{error}</div>}
-          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+          <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
             {step > 0 && (
               <button className="btn btn-secondary" onClick={() => setStep((s) => s - 1)}>
                 Назад
@@ -184,9 +184,9 @@ export function ApplicationWizard() {
       )}
 
       {stage === "sign" && (
-        <div className="card" style={{ maxWidth: 560 }}>
-          <h2 style={{ fontSize: 18, marginBottom: 12 }}>Подписание документов</h2>
-          <p style={{ color: "var(--gray-700)", marginBottom: 20 }}>
+        <div className="card" style={{ maxWidth: "35rem" }}>
+          <h2 style={{ fontSize: "1.125rem", marginBottom: "0.75rem" }}>Подписание документов</h2>
+          <p style={{ color: "var(--gray-700)", marginBottom: "1.25rem" }}>
             Проверьте данные анкеты. После подписания будут сформированы заявление, договор и файл с
             персональными данными.
           </p>
@@ -199,7 +199,7 @@ export function ApplicationWizard() {
             ))}
           </div>
           {error && <div className="error-banner">{error}</div>}
-          <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+          <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
             <button className="btn btn-secondary" onClick={() => setStep(APPLICATION_FIELD_GROUPS.length - 1)}>
               Редактировать анкету
             </button>
@@ -225,9 +225,9 @@ function DocumentsView({ enrollmentId }: { enrollmentId: number }) {
   ];
 
   return (
-    <div className="card" style={{ maxWidth: 760 }}>
-      <h2 style={{ fontSize: 18, marginBottom: 8 }}>Документы готовы</h2>
-      <p style={{ color: "var(--gray-700)", marginBottom: 20 }}>
+    <div className="card" style={{ maxWidth: "47.5rem" }}>
+      <h2 style={{ fontSize: "1.125rem", marginBottom: "0.5rem" }}>Документы готовы</h2>
+      <p style={{ color: "var(--gray-700)", marginBottom: "1.25rem" }}>
         Заявление и договор подписаны электронной подписью. Ознакомьтесь с документами ниже.
       </p>
       <div className="doc-downloads">

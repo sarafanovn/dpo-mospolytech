@@ -54,9 +54,9 @@ export function AdminCertificates() {
   return (
     <div>
       <div className="eyebrow">Администрирование</div>
-      <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Справки и сертификаты</h1>
+      <h1 className="page-title">Справки и сертификаты</h1>
 
-      {issueError && <div style={{ marginBottom: 20 }}><ErrorState message={issueError} /></div>}
+      {issueError && <div style={{ marginBottom: "1.25rem" }}><ErrorState message={issueError} /></div>}
 
       <div className="list-stack">
         {enrollments.map((enrollment) => {
@@ -64,14 +64,14 @@ export function AdminCertificates() {
           const certs = certificatesByEnrollment[enrollment.id] ?? [];
           return (
             <div key={enrollment.id} className="card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>{course?.title}</div>
-                  <div style={{ fontSize: 13, color: "var(--gray-500)" }}>Заявка №{enrollment.id}</div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>Заявка №{enrollment.id}</div>
                 </div>
                 <StatusBadge status={enrollment.status} />
               </div>
-              <div className="inline-actions" style={{ marginBottom: certs.length ? 16 : 0 }}>
+              <div className="inline-actions" style={{ marginBottom: certs.length ? "1rem" : 0 }}>
                 <button className="btn btn-secondary" disabled={busyId === enrollment.id} onClick={() => handleIssue(enrollment.id, "reference")}>
                   Сформировать справку
                 </button>

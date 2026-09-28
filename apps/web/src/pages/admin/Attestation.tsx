@@ -73,7 +73,7 @@ export function Attestation() {
   return (
     <div>
       <div className="eyebrow">Администрирование</div>
-      <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Аттестация</h1>
+      <h1 className="page-title">Аттестация</h1>
 
       <div className="list-stack">
         {enrollments.map((enrollment) => {
@@ -81,10 +81,10 @@ export function Attestation() {
           const draft = drafts[enrollment.id] ?? { intermediate: "", final: "" };
           return (
             <div key={enrollment.id} className="card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>{course?.title}</div>
-                  <div style={{ fontSize: 13, color: "var(--gray-500)" }}>Заявка №{enrollment.id}</div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>Заявка №{enrollment.id}</div>
                 </div>
                 <StatusBadge status={enrollment.status} />
               </div>
@@ -107,12 +107,12 @@ export function Attestation() {
                 />
               </div>
               {saveErrors[enrollment.id] && <ErrorState message={saveErrors[enrollment.id]} />}
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <button className="btn btn-primary" disabled={busyId === enrollment.id} onClick={() => handleSave(enrollment)}>
                   {busyId === enrollment.id ? "Сохраняем…" : "Сохранить"}
                 </button>
                 {savedId === enrollment.id && (
-                  <span style={{ fontSize: 13, color: "var(--gray-500)" }}>Сохранено</span>
+                  <span style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>Сохранено</span>
                 )}
               </div>
             </div>

@@ -50,8 +50,8 @@ export function CourseList() {
   return (
     <div>
       <div className="eyebrow">Программы ДПО</div>
-      <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Доступные курсы</h1>
-      {enrollError && <div style={{ marginBottom: 20 }}><ErrorState message={enrollError} /></div>}
+      <h1 className="page-title">Доступные курсы</h1>
+      {enrollError && <div style={{ marginBottom: "1.25rem" }}><ErrorState message={enrollError} /></div>}
       {courses.length === 0 && <p style={{ color: "var(--gray-500)" }}>Курсы пока не добавлены.</p>}
       <div className="course-grid">
         {courses.map((course) => {
@@ -59,11 +59,11 @@ export function CourseList() {
           return (
             <div key={course.id} className="card course-card">
               <div className="badge badge-blue">{course.hours} ак. ч.</div>
-              <h3 style={{ fontSize: 18, margin: "12px 0 6px" }}>{course.title}</h3>
-              <p style={{ color: "var(--gray-500)", fontSize: 13, margin: "0 0 6px" }}>
+              <h3 style={{ fontSize: "1.125rem", margin: "0.75rem 0 0.375rem" }}>{course.title}</h3>
+              <p style={{ color: "var(--gray-500)", fontSize: "0.8125rem", margin: "0 0 0.375rem" }}>
                 {course.durationFrom} — {course.durationTo}
               </p>
-              <p style={{ fontSize: 14, margin: "0 0 20px", flex: 1 }}>{course.description}</p>
+              <p style={{ fontSize: "0.875rem", margin: "0 0 1.25rem", flex: 1 }}>{course.description}</p>
               {enrollment ? (
                 <button className="btn btn-secondary" onClick={() => navigate(`/student/applications/${enrollment.id}`)}>
                   Перейти к заявке
