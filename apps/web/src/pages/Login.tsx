@@ -67,7 +67,7 @@ export function Login() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="error-banner">{error}</div>}
             <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: "100%" }}>
               {submitting ? "Входим…" : "Войти"}
             </button>

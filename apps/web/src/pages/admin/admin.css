@@ -64,6 +64,22 @@
   flex-wrap: wrap;
 }
 
+.table-input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--gray-200);
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.table-input:focus {
+  border-color: var(--crimson);
+}
+
 .detail-panel {
   display: grid;
   grid-template-columns: 260px 1fr;

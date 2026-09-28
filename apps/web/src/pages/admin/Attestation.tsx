@@ -1,43 +1,53 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Course, Enrollment } from "@meridian/shared";
 import { api } from "../../api";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ErrorState } from "../../components/ErrorState";
 import "./admin.css";
 
 export function Attestation() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<number, { intermediate: string; final: string }>>({});
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
+  const [savedId, setSavedId] = useState<number | null>(null);
 
-  const load = () =>
-    Promise.all([api.enrollments.list(), api.courses.list()]).then(([e, c]) => {
-      setEnrollments(
-        e.filter((en) => en.status === "contract_registered" || en.status === "approved" || en.status === "completed")
-      );
-      setCourses(c);
-      setDrafts((prev) => {
-        const next = { ...prev };
-        for (const en of e) {
-          if (!next[en.id]) {
-            next[en.id] = {
-              intermediate: en.intermediateAttestation ?? "",
-              final: en.finalAttestation ?? "",
-            };
+  const load = useCallback(() => {
+    setLoadError(null);
+    return Promise.all([api.enrollments.list(), api.courses.list()])
+      .then(([e, c]) => {
+        setEnrollments(
+          e.filter((en) => en.status === "contract_registered" || en.status === "approved" || en.status === "completed")
+        );
+        setCourses(c);
+        setDrafts((prev) => {
+          const next = { ...prev };
+          for (const en of e) {
+            if (!next[en.id]) {
+              next[en.id] = {
+                intermediate: en.intermediateAttestation ?? "",
+                final: en.finalAttestation ?? "",
+              };
+            }
           }
-        }
-        return next;
-      });
-    });
+          return next;
+        });
+      })
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "Не удалось загрузить заявки"));
+  }, []);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
-  }, []);
+  }, [load]);
 
   const handleSave = async (enrollment: Enrollment) => {
     const draft = drafts[enrollment.id];
     setBusyId(enrollment.id);
+    setSaveErrors((prev) => ({ ...prev, [enrollment.id]: "" }));
+    setSavedId(null);
     try {
       await api.enrollments.update(enrollment.id, {
         intermediateAttestation: draft.intermediate,
@@ -45,12 +55,20 @@ export function Attestation() {
         status: draft.final ? "completed" : enrollment.status === "contract_registered" ? "approved" : enrollment.status,
       });
       await load();
+      setSavedId(enrollment.id);
+    } catch (err) {
+      setSaveErrors((prev) => ({
+        ...prev,
+        [enrollment.id]: err instanceof Error ? err.message : "Не удалось сохранить",
+      }));
     } finally {
       setBusyId(null);
     }
   };
 
   if (loading) return <div className="page-loading">Загрузка…</div>;
+
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
 
   return (
     <div>
@@ -88,9 +106,15 @@ export function Attestation() {
                   placeholder="например, экзамен сдан, оценка «отлично»"
                 />
               </div>
-              <button className="btn btn-primary" disabled={busyId === enrollment.id} onClick={() => handleSave(enrollment)}>
-                Сохранить
-              </button>
+              {saveErrors[enrollment.id] && <ErrorState message={saveErrors[enrollment.id]} />}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button className="btn btn-primary" disabled={busyId === enrollment.id} onClick={() => handleSave(enrollment)}>
+                  {busyId === enrollment.id ? "Сохраняем…" : "Сохранить"}
+                </button>
+                {savedId === enrollment.id && (
+                  <span style={{ fontSize: 13, color: "var(--gray-500)" }}>Сохранено</span>
+                )}
+              </div>
             </div>
           );
         })}

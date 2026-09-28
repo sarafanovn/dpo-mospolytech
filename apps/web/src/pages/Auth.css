@@ -45,16 +45,6 @@
   max-width: 380px;
 }
 
-.auth-error {
-  background: rgba(236, 37, 80, 0.08);
-  color: var(--crimson-dark);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-
 .auth-switch {
   margin-top: 20px;
   text-align: center;

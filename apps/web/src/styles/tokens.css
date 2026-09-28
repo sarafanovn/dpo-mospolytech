@@ -192,3 +192,13 @@ a {
   background: rgba(145, 100, 201, 0.1);
   color: var(--violet);
 }
+
+.error-banner {
+  background: rgba(236, 37, 80, 0.08);
+  color: var(--crimson-dark);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}

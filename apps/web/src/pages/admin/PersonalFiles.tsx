@@ -1,25 +1,36 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Application, Course, Enrollment } from "@meridian/shared";
-import { api } from "../../api";
+import { api, ApiError } from "../../api";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ErrorState } from "../../components/ErrorState";
 import "./admin.css";
 
 export function PersonalFiles() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
     Promise.all([api.enrollments.list(), api.courses.list()])
       .then(([e, c]) => {
         setEnrollments(e.filter((en) => en.status !== "draft"));
         setCourses(c);
       })
+      .catch((err) => setError(err instanceof Error ? err.message : "Не удалось загрузить личные дела"))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading) return <div className="page-loading">Загрузка…</div>;
+
+  if (error) return <ErrorState message={error} onRetry={load} />;
 
   const selected = enrollments.find((e) => e.id === selectedId) ?? null;
 
@@ -58,13 +69,27 @@ export function PersonalFiles() {
 
 function FileDetail({ enrollment, course }: { enrollment: Enrollment; course: Course | null }) {
   const [application, setApplication] = useState<Application | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     setApplication(null);
-    api.applications.get(enrollment.id).then(setApplication).catch(() => setApplication(null));
+    setNotFound(false);
+    setLoadError(null);
+    api
+      .applications.get(enrollment.id)
+      .then(setApplication)
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          setNotFound(true);
+        } else {
+          setLoadError(err instanceof Error ? err.message : "Не удалось загрузить анкету");
+        }
+      });
   }, [enrollment.id]);
 
-  if (!application) return <div className="card">Анкета не найдена.</div>;
+  if (loadError) return <div className="card">{loadError}</div>;
+  if (notFound || !application) return <div className="card">Анкета ещё не заполнена.</div>;
 
   return (
     <div className="card">

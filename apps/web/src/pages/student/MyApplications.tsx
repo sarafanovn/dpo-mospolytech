@@ -1,25 +1,36 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Course, Enrollment } from "@meridian/shared";
 import { api } from "../../api";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ErrorState } from "../../components/ErrorState";
 import "./student.css";
 
 export function MyApplications() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
     Promise.all([api.enrollments.list(), api.courses.list()])
       .then(([e, c]) => {
         setEnrollments(e);
         setCourses(c);
       })
+      .catch((err) => setError(err instanceof Error ? err.message : "Не удалось загрузить заявки"))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading) return <div className="page-loading">Загрузка…</div>;
+
+  if (error) return <ErrorState message={error} onRetry={load} />;
 
   return (
     <div>

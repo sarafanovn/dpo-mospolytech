@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import type { Course } from "@meridian/shared";
 import { api } from "../../api";
+import { ErrorState } from "../../components/ErrorState";
 import "./admin.css";
 
 const EMPTY = { title: "", hours: 72, durationFrom: "", durationTo: "", description: "" };
@@ -8,20 +9,29 @@ const EMPTY = { title: "", hours: 72, durationFrom: "", durationTo: "", descript
 export function AdminCourses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const load = () => api.courses.list().then(setCourses);
+  const load = useCallback(() => {
+    setLoadError(null);
+    return api.courses.list().then(setCourses).catch((err) => {
+      setLoadError(err instanceof Error ? err.message : "Не удалось загрузить курсы");
+    });
+  }, []);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
-  }, []);
+  }, [load]);
 
   const openCreate = () => {
     setEditing(null);
     setForm(EMPTY);
+    setFormError(null);
     setModalOpen(true);
   };
 
@@ -34,12 +44,14 @@ export function AdminCourses() {
       durationTo: course.durationTo,
       description: course.description,
     });
+    setFormError(null);
     setModalOpen(true);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setFormError(null);
     try {
       if (editing) {
         await api.courses.update(editing.id, form);
@@ -48,6 +60,8 @@ export function AdminCourses() {
       }
       await load();
       setModalOpen(false);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Не удалось сохранить курс");
     } finally {
       setSaving(false);
     }
@@ -55,11 +69,18 @@ export function AdminCourses() {
 
   const handleDelete = async (id: number) => {
     if (!confirm("Удалить курс?")) return;
-    await api.courses.remove(id);
-    await load();
+    setDeleteError(null);
+    try {
+      await api.courses.remove(id);
+      await load();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Не удалось удалить курс");
+    }
   };
 
   if (loading) return <div className="page-loading">Загрузка…</div>;
+
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
 
   return (
     <div>
@@ -72,6 +93,8 @@ export function AdminCourses() {
           Добавить курс
         </button>
       </div>
+
+      {deleteError && <div style={{ marginBottom: 20 }}><ErrorState message={deleteError} /></div>}
 
       <table className="admin-table">
         <thead>
@@ -160,6 +183,7 @@ export function AdminCourses() {
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />
               </div>
+              {formError && <div className="error-banner">{formError}</div>}
               <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>
                   Отмена

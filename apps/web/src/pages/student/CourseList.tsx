@@ -1,30 +1,43 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Course, Enrollment } from "@meridian/shared";
 import { api } from "../../api";
+import { ErrorState } from "../../components/ErrorState";
 import "./student.css";
 
 export function CourseList() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [enrollingId, setEnrollingId] = useState<number | null>(null);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
     Promise.all([api.courses.list(), api.enrollments.list()])
       .then(([c, e]) => {
         setCourses(c);
         setEnrollments(e);
       })
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "Не удалось загрузить курсы"))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const handleEnroll = async (courseId: number) => {
     setEnrollingId(courseId);
+    setEnrollError(null);
     try {
       const enrollment = await api.enrollments.create(courseId);
       navigate(`/student/applications/${enrollment.id}`);
+    } catch (err) {
+      setEnrollError(err instanceof Error ? err.message : "Не удалось подать заявку");
     } finally {
       setEnrollingId(null);
     }
@@ -32,10 +45,13 @@ export function CourseList() {
 
   if (loading) return <div className="page-loading">Загрузка…</div>;
 
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
+
   return (
     <div>
       <div className="eyebrow">Программы ДПО</div>
       <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Доступные курсы</h1>
+      {enrollError && <div style={{ marginBottom: 20 }}><ErrorState message={enrollError} /></div>}
       {courses.length === 0 && <p style={{ color: "var(--gray-500)" }}>Курсы пока не добавлены.</p>}
       <div className="course-grid">
         {courses.map((course) => {

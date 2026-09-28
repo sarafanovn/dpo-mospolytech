@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { APPLICATION_FIELD_GROUPS, type ApplicationForm, type Course, type Enrollment } from "@meridian/shared";
-import { api } from "../../api";
+import { api, ApiError } from "../../api";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ErrorState } from "../../components/ErrorState";
 import "./student.css";
 
 const EMPTY_FORM: ApplicationForm = {
@@ -35,31 +36,41 @@ export function ApplicationWizard() {
   const [signedAt, setSignedAt] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [enr, courses] = await Promise.all([api.enrollments.get(id), api.courses.list()]);
-      if (cancelled) return;
-      setEnrollment(enr);
-      setCourse(courses.find((c) => c.id === enr.courseId) ?? null);
+      setLoading(true);
+      setLoadError(null);
       try {
-        const application = await api.applications.get(id);
+        const [enr, courses] = await Promise.all([api.enrollments.get(id), api.courses.list()]);
         if (cancelled) return;
-        setForm(application.form);
-        setSignedAt(application.signedAt);
-      } catch {
-        // no application yet — start from the blank form
+        setEnrollment(enr);
+        setCourse(courses.find((c) => c.id === enr.courseId) ?? null);
+        try {
+          const application = await api.applications.get(id);
+          if (cancelled) return;
+          setForm(application.form);
+          setSignedAt(application.signedAt);
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+          // no application yet — start from the blank form
+        }
+      } catch (err) {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Не удалось загрузить заявку");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
   const stage: Stage = signedAt ? "documents" : step === APPLICATION_FIELD_GROUPS.length ? "sign" : "form";
 
@@ -105,7 +116,13 @@ export function ApplicationWizard() {
     }
   };
 
-  if (loading || !enrollment || !course) return <div className="page-loading">Загрузка…</div>;
+  if (loading) return <div className="page-loading">Загрузка…</div>;
+
+  if (loadError || !enrollment || !course) {
+    return (
+      <ErrorState message={loadError ?? "Заявка не найдена"} onRetry={() => setReloadKey((k) => k + 1)} />
+    );
+  }
 
   return (
     <div>
@@ -152,7 +169,7 @@ export function ApplicationWizard() {
               )}
             </div>
           ))}
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="error-banner">{error}</div>}
           <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
             {step > 0 && (
               <button className="btn btn-secondary" onClick={() => setStep((s) => s - 1)}>
@@ -181,7 +198,7 @@ export function ApplicationWizard() {
               </div>
             ))}
           </div>
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="error-banner">{error}</div>}
           <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
             <button className="btn btn-secondary" onClick={() => setStep(APPLICATION_FIELD_GROUPS.length - 1)}>
               Редактировать анкету

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Certificate, CertificateType, Course, Enrollment } from "@meridian/shared";
 import { api } from "../../api";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ErrorState } from "../../components/ErrorState";
 import "./admin.css";
 
 export function AdminCertificates() {
@@ -9,28 +10,38 @@ export function AdminCertificates() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [certificatesByEnrollment, setCertificatesByEnrollment] = useState<Record<number, Certificate[]>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [issueError, setIssueError] = useState<string | null>(null);
 
-  const load = async () => {
-    const [e, c] = await Promise.all([api.enrollments.list(), api.courses.list()]);
-    const eligible = e.filter((en) => en.status === "approved" || en.status === "completed");
-    setEnrollments(eligible);
-    setCourses(c);
-    const entries = await Promise.all(
-      eligible.map(async (en) => [en.id, await api.certificates.listForEnrollment(en.id)] as const)
-    );
-    setCertificatesByEnrollment(Object.fromEntries(entries));
-  };
+  const load = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const [e, c] = await Promise.all([api.enrollments.list(), api.courses.list()]);
+      const eligible = e.filter((en) => en.status === "approved" || en.status === "completed");
+      setEnrollments(eligible);
+      setCourses(c);
+      const entries = await Promise.all(
+        eligible.map(async (en) => [en.id, await api.certificates.listForEnrollment(en.id)] as const)
+      );
+      setCertificatesByEnrollment(Object.fromEntries(entries));
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Не удалось загрузить справки и сертификаты");
+    }
+  }, []);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
-  }, []);
+  }, [load]);
 
   const handleIssue = async (enrollmentId: number, type: CertificateType) => {
     setBusyId(enrollmentId);
+    setIssueError(null);
     try {
       await api.certificates.create(enrollmentId, type);
       await load();
+    } catch (err) {
+      setIssueError(err instanceof Error ? err.message : "Не удалось сформировать документ");
     } finally {
       setBusyId(null);
     }
@@ -38,10 +49,14 @@ export function AdminCertificates() {
 
   if (loading) return <div className="page-loading">Загрузка…</div>;
 
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
+
   return (
     <div>
       <div className="eyebrow">Администрирование</div>
       <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Справки и сертификаты</h1>
+
+      {issueError && <div style={{ marginBottom: 20 }}><ErrorState message={issueError} /></div>}
 
       <div className="list-stack">
         {enrollments.map((enrollment) => {

@@ -1,33 +1,43 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Course, Enrollment } from "@meridian/shared";
 import { api } from "../../api";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ErrorState } from "../../components/ErrorState";
 import "./admin.css";
 
 export function Contracts() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const load = () =>
-    Promise.all([api.enrollments.list(), api.courses.list()]).then(([e, c]) => {
-      setEnrollments(e.filter((en) => en.status === "signed" || en.status === "contract_registered" || en.status === "approved" || en.status === "completed"));
-      setCourses(c);
-    });
+  const load = useCallback(() => {
+    setLoadError(null);
+    return Promise.all([api.enrollments.list(), api.courses.list()])
+      .then(([e, c]) => {
+        setEnrollments(e.filter((en) => en.status === "signed" || en.status === "contract_registered" || en.status === "approved" || en.status === "completed"));
+        setCourses(c);
+      })
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "Не удалось загрузить договоры"));
+  }, []);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
-  }, []);
+  }, [load]);
 
   const handleRegister = async (enrollment: Enrollment) => {
     const number = drafts[enrollment.id]?.trim();
     if (!number) return;
     setBusyId(enrollment.id);
+    setActionError(null);
     try {
       await api.enrollments.update(enrollment.id, { contractNumber: number });
       await load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Не удалось присвоить номер договора");
     } finally {
       setBusyId(null);
     }
@@ -35,9 +45,12 @@ export function Contracts() {
 
   const handleCountersign = async (enrollment: Enrollment) => {
     setBusyId(enrollment.id);
+    setActionError(null);
     try {
       await api.applications.signExecutor(enrollment.id);
       await load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Не удалось подписать договор");
     } finally {
       setBusyId(null);
     }
@@ -45,10 +58,14 @@ export function Contracts() {
 
   if (loading) return <div className="page-loading">Загрузка…</div>;
 
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
+
   return (
     <div>
       <div className="eyebrow">Администрирование</div>
       <h1 style={{ fontSize: 28, marginTop: 8, marginBottom: 28 }}>Договоры</h1>
+
+      {actionError && <div style={{ marginBottom: 20 }}><ErrorState message={actionError} /></div>}
 
       <table className="admin-table">
         <thead>
@@ -71,15 +88,10 @@ export function Contracts() {
                 <td>
                   {enrollment.contractNumber ?? (
                     <input
+                      className="table-input"
                       placeholder="Присвоить номер"
                       value={drafts[enrollment.id] ?? ""}
                       onChange={(e) => setDrafts((d) => ({ ...d, [enrollment.id]: e.target.value }))}
-                      style={{
-                        padding: "8px 10px",
-                        borderRadius: 8,
-                        border: "1.5px solid var(--gray-200)",
-                        fontSize: 13,
-                      }}
                     />
                   )}
                 </td>
