@@ -1,10 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
+import { AuthShell } from "../components/AuthShell";
 import { PasswordField } from "../components/PasswordField";
-import logoBlack from "../assets/logo-black.svg";
-import pattern from "../assets/pattern-1.svg";
-import "./Auth.css";
+import { errorMessage } from "../hooks/useAsync";
 
 export function Register() {
   const { register } = useAuth();
@@ -21,59 +20,36 @@ export function Register() {
     setSubmitting(true);
     try {
       await register(email, password, fullName);
-      navigate("/student/courses");
+      navigate("/student");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось зарегистрироваться");
+      setError(errorMessage(err, "Не удалось зарегистрироваться"));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-visual">
-        <img src={pattern} alt="" className="auth-pattern" />
-        <div className="auth-visual-text">
-          <div className="eyebrow" style={{ color: "rgba(255,255,255,0.7)" }}>
-            Московский Политех
-          </div>
-          <h1 style={{ color: "#fff", fontSize: "2.125rem", marginTop: "0.75rem" }}>
-            Портал информационной поддержки ДПО
-          </h1>
+    <AuthShell>
+      <form className="login-card" onSubmit={handleSubmit}>
+        <h2>Регистрация</h2>
+        <p>Создайте аккаунт обучающегося, чтобы записаться на программу ДПО и оформить документы.</p>
+        <div className="field">
+          <label htmlFor="fullName">Ф. И. О.</label>
+          <input id="fullName" type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Иванов Иван Иванович" />
         </div>
-      </div>
-      <div className="auth-form-wrap">
-        <img src={logoBlack} alt="Московский Политех" className="auth-logo" />
-        <div className="card auth-card">
-          <div className="eyebrow">Регистрация</div>
-          <h2 style={{ fontSize: "1.5rem", marginTop: "0.5rem", marginBottom: "1.5rem" }}>Создать аккаунт</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="field">
-              <label htmlFor="fullName">Ф. И. О.</label>
-              <input
-                id="fullName"
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Иванов Иван Иванович"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="email">E-mail</label>
-              <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <PasswordField label="Пароль" value={password} onChange={setPassword} required minLength={6} />
-            {error && <div className="error-banner">{error}</div>}
-            <button className="btn btn-primary" type="submit" disabled={submitting} style={{ width: "100%" }}>
-              {submitting ? "Создаём…" : "Зарегистрироваться"}
-            </button>
-          </form>
-          <div className="auth-switch">
-            Уже есть аккаунт? <Link to="/login">Войти</Link>
-          </div>
+        <div className="field">
+          <label htmlFor="email">Email</label>
+          <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@mospolytech.ru" />
         </div>
-      </div>
-    </div>
+        <PasswordField label="Пароль" value={password} onChange={setPassword} required minLength={6} />
+        {error && <div className="error-banner">{error}</div>}
+        <button className="btn btn-primary btn-block" type="submit" disabled={submitting}>
+          {submitting ? "Создаём…" : "Зарегистрироваться"}
+        </button>
+        <div className="auth-switch">
+          Уже есть аккаунт? <Link to="/login">Войти</Link>
+        </div>
+      </form>
+    </AuthShell>
   );
 }

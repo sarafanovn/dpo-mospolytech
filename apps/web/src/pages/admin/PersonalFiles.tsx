@@ -1,138 +1,158 @@
-import { useCallback, useEffect, useState } from "react";
-import { APPLICATION_FIELD_GROUPS, formatIsoDate, type Application, type Course, type Enrollment } from "@meridian/shared";
-import { api, ApiError } from "../../api";
-import { StatusBadge } from "../../components/StatusBadge";
-import { ErrorState } from "../../components/ErrorState";
-import "./admin.css";
+import { useState } from "react";
+import { api } from "../../api";
+import { EnrollmentFileModal } from "../../components/EnrollmentFileModal";
+import { batchMessage } from "../../lib/batch";
+import { Loading } from "../../components/Loading";
+import { PageHead } from "../../components/PageHead";
+import { useSelection } from "../../components/SelectableTable";
+import { useToast } from "../../ToastContext";
+import { useEnrollments } from "../../hooks/useEnrollments";
+import { errorMessage } from "../../hooks/useAsync";
+import { fmtDate } from "../../lib/format";
+import { getProgress, studentName } from "../../lib/progress";
 
 export function PersonalFiles() {
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const { data, loading, error, reload } = useEnrollments();
+  const { toast, toastError } = useToast();
+  const [courseId, setCourseId] = useState("");
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([api.enrollments.list(), api.courses.list()])
-      .then(([e, c]) => {
-        setEnrollments(e.filter((en) => en.status !== "draft"));
-        setCourses(c);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Не удалось загрузить личные дела"))
-      .finally(() => setLoading(false));
-  }, []);
+  const all = data ?? [];
+  const programs = [...new Map(all.map((e) => [e.courseId, e.course])).values()];
+  // Drafts have no signed application, so there is nothing to put into a personal file yet.
+  const rows = all.filter((e) => e.application && (!courseId || e.courseId === Number(courseId)));
+  const selection = useSelection(rows.map((e) => e.id));
+  const chosen = rows.filter((e) => selection.selected.has(e.id));
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const toRegister = chosen.filter((e) => e.application?.signedAt && !e.contractNumber);
+  const toSign = chosen.filter((e) => e.application?.signedAt && !e.application.signedByExecutorAt);
+  const toUnsign = chosen.filter((e) => e.application?.signedByExecutorAt);
+  const opened = all.find((e) => e.id === openId) ?? null;
 
-  if (loading) return <div className="page-loading">Загрузка…</div>;
+  const batch = async (action: (ids: number[]) => ReturnType<typeof api.enrollments.signContracts>, items: typeof rows, done: string) => {
+    setBusy(true);
+    try {
+      const result = await action(items.map((e) => e.id));
+      toast(batchMessage(done, result));
+      await reload();
+    } catch (err) {
+      toastError(errorMessage(err, "Не удалось выполнить действие"));
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  if (error) return <ErrorState message={error} onRetry={load} />;
-
-  const selected = enrollments.find((e) => e.id === selectedId) ?? null;
+  const contractCell = (e: (typeof rows)[number]) => {
+    if (e.application?.signedByExecutorAt) return <span className="status status-green">Подписан · № {e.contractNumber}</span>;
+    if (e.contractNumber) return <span className="status status-amber">№ {e.contractNumber} · ждёт подписи</span>;
+    return <span className="status status-gray">Не зарегистрирован</span>;
+  };
 
   return (
-    <div>
-      <div className="eyebrow">Администрирование</div>
-      <h1 className="page-title">Личные дела</h1>
-
-      <div className="detail-panel">
-        <div className="list-stack">
-          {enrollments.map((enrollment) => {
-            const course = courses.find((c) => c.id === enrollment.courseId);
-            return (
-              <button
-                key={enrollment.id}
-                className="card list-row"
-                style={{ border: "none", cursor: "pointer", textAlign: "left" }}
-                onClick={() => setSelectedId(enrollment.id)}
-              >
-                <div>
-                  <div style={{ fontWeight: 700 }}>Заявка №{enrollment.id}</div>
-                  <div style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>{course?.title}</div>
-                </div>
-                <StatusBadge status={enrollment.status} />
-              </button>
-            );
-          })}
-          {enrollments.length === 0 && <p style={{ color: "var(--gray-500)" }}>Пока нет поданных анкет.</p>}
+    <>
+      <PageHead
+        title="Личные дела"
+        text="Электронные личные дела обучающихся. Выберите программу, отметьте обучающихся и зарегистрируйте или подпишите договоры сразу для всех."
+      />
+      <Loading loading={loading} error={error} onRetry={reload}>
+        <div className="toolbar">
+          <div className="field">
+            <select aria-label="Программа" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+              <option value="">Все программы</option>
+              {programs.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn btn-light" onClick={() => selection.set(rows.filter((e) => e.application?.signedAt).map((e) => e.id))} disabled={rows.length === 0}>
+            Выбрать всех подписавших заявление
+          </button>
         </div>
 
-        {selected && <FileDetail enrollment={selected} course={courses.find((c) => c.id === selected.courseId) ?? null} />}
-      </div>
-    </div>
-  );
-}
-
-function FileDetail({ enrollment, course }: { enrollment: Enrollment; course: Course | null }) {
-  const [application, setApplication] = useState<Application | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setApplication(null);
-    setNotFound(false);
-    setLoadError(null);
-    api
-      .applications.get(enrollment.id)
-      .then(setApplication)
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 404) {
-          setNotFound(true);
-        } else {
-          setLoadError(err instanceof Error ? err.message : "Не удалось загрузить анкету");
-        }
-      });
-  }, [enrollment.id]);
-
-  if (loadError) return <div className="card">{loadError}</div>;
-  if (notFound || !application) return <div className="card">Анкета ещё не заполнена.</div>;
-
-  return (
-    <div className="card">
-      <h2 style={{ fontSize: "1.125rem", marginBottom: "0.25rem" }}>{course?.title}</h2>
-      <p style={{ color: "var(--gray-500)", fontSize: "0.8125rem", marginBottom: "1.25rem" }}>
-        Заявка №{enrollment.id} · <StatusBadge status={enrollment.status} />
-      </p>
-      <div className="review-grid" style={{ marginBottom: "1.5rem" }}>
-        {APPLICATION_FIELD_GROUPS.flatMap((g) => g.fields).map((f) => (
-          <div key={f.key} className="review-item">
-            <div className="review-label">{f.label}</div>
-            <div className="review-value">
-              {f.type === "date" && application.form[f.key] ? formatIsoDate(application.form[f.key]) : application.form[f.key]}
-            </div>
+        {chosen.length > 0 && (
+          <div className="selection-bar">
+            <b>Выбрано: {chosen.length}</b>
+            <button className="btn btn-light btn-sm" disabled={busy || toRegister.length === 0} onClick={() => batch(api.enrollments.registerContracts, toRegister, "Зарегистрировано договоров")}>
+              Зарегистрировать договоры ({toRegister.length})
+            </button>
+            <button className="btn btn-red btn-sm" disabled={busy || toSign.length === 0} onClick={() => batch(api.enrollments.signContracts, toSign, "Подписано договоров")}>
+              Подписать ({toSign.length})
+            </button>
+            <button
+              className="btn btn-light btn-sm"
+              disabled={busy || toUnsign.length === 0}
+              onClick={() =>
+                confirm(`Отменить подписание договоров (${toUnsign.length})? У обучающихся исчезнут PDF договоров.`) &&
+                batch(api.enrollments.unsignContracts, toUnsign, "Подписание отменено")
+              }
+            >
+              Отменить подписание ({toUnsign.length})
+            </button>
           </div>
-        ))}
-      </div>
-      <div className="inline-actions">
-        <a
-          className="btn btn-secondary"
-          href={api.applications.documentUrl(enrollment.id, "application")}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Заявление (PDF)
-        </a>
-        <a
-          className="btn btn-secondary"
-          href={api.applications.documentUrl(enrollment.id, "contract")}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Договор (PDF)
-        </a>
-        <a
-          className="btn btn-secondary"
-          href={api.applications.documentUrl(enrollment.id, "personal-data")}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Персональные данные (XLSX)
-        </a>
-      </div>
-    </div>
+        )}
+
+        <section className="card">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="col-check">
+                    <input type="checkbox" aria-label="Выбрать всех" checked={selection.allSelected} onChange={selection.toggleAll} />
+                  </th>
+                  <th>Обучающийся</th>
+                  <th>Программа</th>
+                  <th>Заявление</th>
+                  <th>Документы</th>
+                  <th>Договор</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((e) => {
+                  const p = getProgress(e);
+                  return (
+                    <tr key={e.id}>
+                      <td className="col-check">
+                        <input type="checkbox" aria-label={`Выбрать ${studentName(e)}`} checked={selection.selected.has(e.id)} onChange={() => selection.toggle(e.id)} />
+                      </td>
+                      <td>
+                        <span className="cell-title">{studentName(e)}</span>
+                        <small>{e.student.email}</small>
+                      </td>
+                      <td>{e.course.title}</td>
+                      <td>
+                        {e.application?.signedAt ? (
+                          <span className="status status-green">Подписано {fmtDate(e.application.signedAt)}</span>
+                        ) : (
+                          <span className="status status-amber">Не подписано</span>
+                        )}
+                      </td>
+                      <td>{e.documents.length > 0 ? `${p.steps[1].done ? "3/3" : `${e.documents.filter((d) => d.kind !== "other").length}/3`} + ${e.documents.filter((d) => d.kind === "other").length}` : "0/3"}</td>
+                      <td>{contractCell(e)}</td>
+                      <td>
+                        <button className="btn btn-light btn-sm" onClick={() => setOpenId(e.id)}>
+                          Открыть
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="muted">
+                      Личных дел пока нет — они появляются, когда обучающийся заполнит заявление.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </Loading>
+      {opened && <EnrollmentFileModal enrollment={opened} onClose={() => setOpenId(null)} onChanged={reload} />}
+    </>
   );
 }

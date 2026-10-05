@@ -6,10 +6,15 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run build --workspace=packages/shared && (npm run dev --workspace=apps/server & npm run dev --workspace=apps/web & wait)",
+    "dev": "npm run build --workspace=packages/shared && concurrently -k -n server,web -c blue,magenta \"npm run dev --silent --workspace=apps/server\" \"npm run dev --silent --workspace=apps/web\"",
     "dev:server": "npm run dev --workspace=apps/server",
     "dev:web": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/web && npm run build --workspace=apps/server",
-    "start": "npm run start --workspace=apps/server"
+    "start": "npm run start --workspace=apps/server",
+    "setup": "npm install && npm run seed:admin && npm run dev",
+    "seed:admin": "npm run seed:admin --workspace=apps/server --"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
   }
 }

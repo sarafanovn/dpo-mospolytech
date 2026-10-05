@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { User } from "@meridian/shared";
-import { api } from "./api";
+import { api, type ProfileInput } from "./api";
 
 interface AuthState {
   user: User | null;
@@ -8,7 +8,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, fullName: string) => Promise<User>;
   logout: () => Promise<void>;
-  updateProfile: (data: { fullName: string; phone: string; birthDate: string }) => Promise<User>;
+  updateProfile: (data: ProfileInput) => Promise<User>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -42,19 +42,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const updateProfile = useCallback(async (data: { fullName: string; phone: string; birthDate: string }) => {
+  const updateProfile = useCallback(async (data: ProfileInput) => {
     const u = await api.updateProfile(data);
     setUser(u);
     return u;
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, loading, login, register, logout, updateProfile }),
+    [user, loading, login, register, logout, updateProfile]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

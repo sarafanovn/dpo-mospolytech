@@ -1,0 +1,213 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.65fr;
+  gap: 1.125rem;
+  margin-top: 1.125rem;
+  align-items: start;
+}
+
+.program-card h3 {
+  font-size: 1.875rem;
+  margin: 0.625rem 0;
+  line-height: 1.08;
+}
+
+.program-card p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.program-card .steps {
+  margin: 1.25rem 0;
+}
+
+.kicker {
+  color: var(--red);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.section-title {
+  margin: 2rem 0 1rem;
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+
+.section-title:first-child {
+  margin-top: 0;
+}
+
+/* Course banners (showcase) */
+.course-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 15.625rem;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+a.course-card:hover {
+  transform: translateY(-0.125rem);
+  border-color: var(--black);
+}
+
+.course-card h3 {
+  font-size: 1.5625rem;
+  margin: 0.75rem 0 0.625rem;
+  line-height: 1.06;
+}
+
+.course-card p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.course-card .actions {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  justify-content: space-between;
+}
+
+.course-link {
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+
+/* Application form */
+.form-group-title {
+  margin: 1.5rem 0 0.875rem;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.form-group-title:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.pdf-frame {
+  width: 100%;
+  height: 40rem;
+  border: 0.0625rem solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+}
+
+/* Documents */
+.set-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.set-head h2 {
+  font-size: 1.375rem;
+}
+
+/* Grades diary */
+.grade-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 0.0625rem solid #ecece8;
+}
+
+.grade-row:last-child {
+  border-bottom: 0;
+}
+
+.grade-row b {
+  display: block;
+}
+
+.grade-row small {
+  color: var(--muted);
+}
+
+.grade-value {
+  min-width: 4rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.875rem;
+  background: var(--paper);
+  border: 0.0625rem solid var(--line);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--muted);
+}
+
+.grade-value.is-set {
+  background: #eaf7e4;
+  border-color: #cce9bf;
+  color: #2f6b1a;
+}
+
+.grade-value.is-text {
+  font-size: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+/* Certificates */
+.certificate {
+  background: #fff;
+  border: 0.0625rem solid var(--line);
+  border-radius: 1.125rem;
+  padding: 1.875rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.certificate::after {
+  content: "";
+  position: absolute;
+  width: 8rem;
+  height: 8rem;
+  border: 1.5rem solid #fde4e8;
+  border-radius: 50%;
+  right: -3rem;
+  top: -3rem;
+  pointer-events: none;
+}
+
+.certificate h2 {
+  margin: 0.75rem 0 0.3125rem;
+  font-size: 2.125rem;
+}
+
+.certificate .cert-name {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 900;
+}
+
+.certificate .cert-course {
+  font-size: 1.1875rem;
+  font-weight: 800;
+}
+
+.certificate p {
+  margin: 0.375rem 0;
+  color: var(--muted);
+}
+
+.certificate .btn {
+  margin-top: 1rem;
+}
+
+.certificate > * {
+  position: relative;
+  z-index: 1;
+}

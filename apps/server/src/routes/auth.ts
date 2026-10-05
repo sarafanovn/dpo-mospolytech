@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "../db.js";
 import { signSession, setSessionCookie, clearSessionCookie, requireAuth, requireRole } from "../auth.js";
-import type { User } from "@meridian/shared";
+import { toUser, type UserRow } from "../serialize.js";
 
 export const authRouter = Router();
 
@@ -12,29 +12,6 @@ const registerSchema = z.object({
   password: z.string().min(6),
   fullName: z.string().min(2),
 });
-
-interface UserRow {
-  id: number;
-  email: string;
-  password_hash: string;
-  full_name: string;
-  phone: string | null;
-  birth_date: string | null;
-  role: "student" | "admin";
-  created_at: string;
-}
-
-function toUser(row: UserRow): User {
-  return {
-    id: row.id,
-    email: row.email,
-    fullName: row.full_name,
-    phone: row.phone,
-    birthDate: row.birth_date,
-    role: row.role,
-    createdAt: row.created_at,
-  };
-}
 
 authRouter.post("/register", (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
@@ -125,6 +102,7 @@ const updateProfileSchema = z.object({
   fullName: z.string().min(2),
   phone: z.string().min(1),
   birthDate: z.string().min(1),
+  branch: z.string().default(""),
 });
 
 authRouter.patch("/me", requireAuth, (req, res) => {
@@ -133,11 +111,12 @@ authRouter.patch("/me", requireAuth, (req, res) => {
     res.status(400).json({ error: "Некорректные данные", details: parsed.error.flatten() });
     return;
   }
-  const { fullName, phone, birthDate } = parsed.data;
-  db.prepare("UPDATE users SET full_name = ?, phone = ?, birth_date = ? WHERE id = ?").run(
+  const { fullName, phone, birthDate, branch } = parsed.data;
+  db.prepare("UPDATE users SET full_name = ?, phone = ?, birth_date = ?, branch = ? WHERE id = ?").run(
     fullName,
     phone,
     birthDate,
+    branch || null,
     req.session!.userId
   );
   const row = db.prepare("SELECT * FROM users WHERE id = ?").get(req.session!.userId) as UserRow;

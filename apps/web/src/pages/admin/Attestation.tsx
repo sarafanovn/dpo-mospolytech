@@ -1,125 +1,150 @@
-import { useCallback, useEffect, useState } from "react";
-import type { Course, Enrollment } from "@meridian/shared";
+import { useState } from "react";
+import type { EnrollmentDetail } from "@meridian/shared";
 import { api } from "../../api";
+import { Loading } from "../../components/Loading";
+import { PageHead } from "../../components/PageHead";
 import { StatusBadge } from "../../components/StatusBadge";
-import { ErrorState } from "../../components/ErrorState";
-import "./admin.css";
+import { useToast } from "../../ToastContext";
+import { useEnrollments } from "../../hooks/useEnrollments";
+import { errorMessage } from "../../hooks/useAsync";
+import { studentName } from "../../lib/progress";
+
+interface Grades {
+  practice: string;
+  intermediate: string;
+  final: string;
+}
+
+const original = (e: EnrollmentDetail): Grades => ({
+  practice: e.gradePractice ?? "",
+  intermediate: e.gradeIntermediate ?? "",
+  final: e.gradeFinal ?? "",
+});
+
+const COLUMNS: { key: keyof Grades; label: string }[] = [
+  { key: "practice", label: "Практика" },
+  { key: "intermediate", label: "Промежуточная аттестация" },
+  { key: "final", label: "Итоговая аттестация" },
+];
 
 export function Attestation() {
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<number, { intermediate: string; final: string }>>({});
-  const [busyId, setBusyId] = useState<number | null>(null);
-  const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
-  const [savedId, setSavedId] = useState<number | null>(null);
+  const { data, loading, error, reload } = useEnrollments();
+  const { toast, toastError } = useToast();
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [edits, setEdits] = useState<Record<number, Grades>>({});
+  const [saving, setSaving] = useState(false);
 
-  const load = useCallback(() => {
-    setLoadError(null);
-    return Promise.all([api.enrollments.list(), api.courses.list()])
-      .then(([e, c]) => {
-        setEnrollments(
-          e.filter((en) => en.status === "contract_registered" || en.status === "approved" || en.status === "completed")
-        );
-        setCourses(c);
-        setDrafts((prev) => {
-          const next = { ...prev };
-          for (const en of e) {
-            if (!next[en.id]) {
-              next[en.id] = {
-                intermediate: en.intermediateAttestation ?? "",
-                final: en.finalAttestation ?? "",
-              };
-            }
-          }
-          return next;
-        });
-      })
-      .catch((err) => setLoadError(err instanceof Error ? err.message : "Не удалось загрузить заявки"));
-  }, []);
+  const enrolled = (data ?? []).filter((e) => e.status === "approved" || e.status === "completed");
+  const programs = [...new Map(enrolled.map((e) => [e.courseId, e.course])).values()];
+  const activeCourseId = courseId ?? programs[0]?.id ?? null;
+  const rows = enrolled.filter((e) => e.courseId === activeCourseId);
 
-  useEffect(() => {
-    load().finally(() => setLoading(false));
-  }, [load]);
+  const valueOf = (e: EnrollmentDetail): Grades => edits[e.id] ?? original(e);
+  const dirtyRows = rows.filter((e) => {
+    const edit = edits[e.id];
+    const base = original(e);
+    return edit && COLUMNS.some((c) => edit[c.key].trim() !== base[c.key]);
+  });
 
-  const handleSave = async (enrollment: Enrollment) => {
-    const draft = drafts[enrollment.id];
-    setBusyId(enrollment.id);
-    setSaveErrors((prev) => ({ ...prev, [enrollment.id]: "" }));
-    setSavedId(null);
+  const setGrade = (e: EnrollmentDetail, key: keyof Grades, value: string) =>
+    setEdits((prev) => ({ ...prev, [e.id]: { ...valueOf(e), [key]: value } }));
+
+  const save = async () => {
+    setSaving(true);
     try {
-      await api.enrollments.update(enrollment.id, {
-        intermediateAttestation: draft.intermediate,
-        finalAttestation: draft.final,
-        status: draft.final ? "completed" : enrollment.status === "contract_registered" ? "approved" : enrollment.status,
+      await api.enrollments.saveGrades(
+        dirtyRows.map((e) => {
+          const g = edits[e.id];
+          return { id: e.id, gradePractice: g.practice, gradeIntermediate: g.intermediate, gradeFinal: g.final };
+        })
+      );
+      setEdits((prev) => {
+        const next = { ...prev };
+        for (const e of dirtyRows) delete next[e.id];
+        return next;
       });
-      await load();
-      setSavedId(enrollment.id);
+      toast("Ведомость сохранена");
+      await reload();
     } catch (err) {
-      setSaveErrors((prev) => ({
-        ...prev,
-        [enrollment.id]: err instanceof Error ? err.message : "Не удалось сохранить",
-      }));
+      toastError(errorMessage(err, "Не удалось сохранить ведомость"));
     } finally {
-      setBusyId(null);
+      setSaving(false);
     }
   };
 
-  if (loading) return <div className="page-loading">Загрузка…</div>;
-
-  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
-
   return (
-    <div>
-      <div className="eyebrow">Администрирование</div>
-      <h1 className="page-title">Аттестация</h1>
-
-      <div className="list-stack">
-        {enrollments.map((enrollment) => {
-          const course = courses.find((c) => c.id === enrollment.courseId);
-          const draft = drafts[enrollment.id] ?? { intermediate: "", final: "" };
-          return (
-            <div key={enrollment.id} className="card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>{course?.title}</div>
-                  <div style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>Заявка №{enrollment.id}</div>
-                </div>
-                <StatusBadge status={enrollment.status} />
-              </div>
+    <>
+      <PageHead
+        title="Аттестация"
+        text="Ведомость успеваемости: оценки за практику, промежуточную и итоговую аттестацию. Обучающиеся видят свои оценки в разделе «Успеваемость». Расписание аттестаций ведётся в СДО."
+      />
+      <Loading loading={loading} error={error} onRetry={reload}>
+        {programs.length === 0 ? (
+          <div className="card">
+            <div className="empty">В ведомость попадают зачисленные обучающиеся. Зачислите кого-нибудь в разделе «Заявки».</div>
+          </div>
+        ) : (
+          <>
+            <div className="toolbar">
               <div className="field">
-                <label>Промежуточная аттестация</label>
-                <input
-                  value={draft.intermediate}
-                  onChange={(e) =>
-                    setDrafts((d) => ({ ...d, [enrollment.id]: { ...draft, intermediate: e.target.value } }))
-                  }
-                  placeholder="например, зачёт от 15.11.2026"
-                />
+                <select aria-label="Программа" value={activeCourseId ?? ""} onChange={(e) => setCourseId(Number(e.target.value))}>
+                  {programs.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="field">
-                <label>Итоговая аттестация</label>
-                <input
-                  value={draft.final}
-                  onChange={(e) => setDrafts((d) => ({ ...d, [enrollment.id]: { ...draft, final: e.target.value } }))}
-                  placeholder="например, экзамен сдан, оценка «отлично»"
-                />
-              </div>
-              {saveErrors[enrollment.id] && <ErrorState message={saveErrors[enrollment.id]} />}
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <button className="btn btn-primary" disabled={busyId === enrollment.id} onClick={() => handleSave(enrollment)}>
-                  {busyId === enrollment.id ? "Сохраняем…" : "Сохранить"}
-                </button>
-                {savedId === enrollment.id && (
-                  <span style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>Сохранено</span>
-                )}
-              </div>
+              <span className="toolbar-spacer" />
+              <button className="btn btn-red" onClick={save} disabled={saving || dirtyRows.length === 0}>
+                {saving ? "Сохраняем…" : dirtyRows.length ? `Сохранить ведомость (${dirtyRows.length})` : "Сохранить ведомость"}
+              </button>
             </div>
-          );
-        })}
-        {enrollments.length === 0 && <p style={{ color: "var(--gray-500)" }}>Нет заявок с оформленным договором.</p>}
-      </div>
-    </div>
+            <section className="card">
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Обучающийся</th>
+                      <th>Статус</th>
+                      {COLUMNS.map((c) => (
+                        <th key={c.key}>{c.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <datalist id="grade-options">
+                      {["5", "4", "3", "2", "зачтено", "не зачтено"].map((g) => (
+                        <option key={g} value={g} />
+                      ))}
+                    </datalist>
+                    {rows.map((e) => (
+                      <tr key={e.id}>
+                        <td className="cell-title">{studentName(e)}</td>
+                        <td>
+                          <StatusBadge status={e.status} />
+                        </td>
+                        {COLUMNS.map((c) => (
+                          <td key={c.key}>
+                            <input
+                              className="grade-input"
+                              list="grade-options"
+                              aria-label={`${c.label}: ${studentName(e)}`}
+                              maxLength={40}
+                              value={valueOf(e)[c.key]}
+                              onChange={(ev) => setGrade(e, c.key, ev.target.value)}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
+      </Loading>
+    </>
   );
 }

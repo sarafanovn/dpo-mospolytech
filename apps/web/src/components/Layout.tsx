@@ -1,26 +1,42 @@
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import logoBlack from "../assets/logo-black.svg";
-import "./Layout.css";
+import logoWhite from "../assets/logo-white.svg";
+import { Icon, type IconName } from "./Icon";
 
-const STUDENT_NAV = [
-  { to: "/student/courses", label: "Курсы ДПО" },
-  { to: "/student/applications", label: "Мои заявки" },
-  { to: "/student/profile", label: "Профиль" },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: IconName;
+  end?: boolean;
+}
+
+const STUDENT_NAV: NavItem[] = [
+  { to: "/student", label: "Главная", icon: "home", end: true },
+  { to: "/student/courses", label: "Курсы ДПО", icon: "courses" },
+  { to: "/student/applications", label: "Мои записи", icon: "edit" },
+  { to: "/student/documents", label: "Документы", icon: "file" },
+  { to: "/student/grades", label: "Успеваемость", icon: "grade" },
+  { to: "/student/certificates", label: "Сертификаты ДПО", icon: "award" },
+  { to: "/student/profile", label: "Профиль", icon: "user" },
 ];
 
-const ADMIN_NAV = [
-  { to: "/admin/courses", label: "Курсы ДПО" },
-  { to: "/admin/files", label: "Личные дела" },
-  { to: "/admin/contracts", label: "Договоры" },
-  { to: "/admin/attestation", label: "Аттестация" },
-  { to: "/admin/certificates", label: "Справки и сертификаты" },
+const ADMIN_NAV: NavItem[] = [
+  { to: "/admin", label: "Обзор", icon: "home", end: true },
+  { to: "/admin/courses", label: "Курсы ДПО", icon: "courses" },
+  { to: "/admin/applications", label: "Заявки", icon: "list" },
+  { to: "/admin/files", label: "Личные дела", icon: "file" },
+  { to: "/admin/attestation", label: "Аттестация", icon: "grade" },
+  { to: "/admin/certificates", label: "Справки и сертификаты", icon: "award" },
+  { to: "/admin/templates", label: "Шаблоны документов", icon: "template" },
 ];
 
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const nav = user?.role === "admin" ? ADMIN_NAV : STUDENT_NAV;
+  const [open, setOpen] = useState(false);
+  const isAdmin = user?.role === "admin";
+  const nav = isAdmin ? ADMIN_NAV : STUDENT_NAV;
 
   const handleLogout = async () => {
     await logout();
@@ -28,36 +44,40 @@ export function Layout() {
   };
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className="portal">
+      <aside className={`sidebar${open ? " open" : ""}`}>
         <div className="sidebar-brand">
-          <img src={logoBlack} alt="Московский Политех" className="sidebar-logo" />
+          <img src={logoWhite} alt="Московский Политех" />
         </div>
-        <nav className="sidebar-nav">
+        <nav className="nav">
           {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `sidebar-link${isActive ? " active" : ""}`}
-            >
+            <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setOpen(false)} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+              <Icon name={item.icon} className="nav-icon" />
               {item.label}
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-user-name">{user?.fullName}</div>
-            <div className="sidebar-user-role">{user?.role === "admin" ? "Администратор" : "Обучающийся"}</div>
+        <div className="sidebar-bottom">
+          <div className="user-mini">
+            <b>{user?.fullName}</b>
+            <small>{isAdmin ? "Администратор системы" : (user?.branch ?? "Обучающийся")}</small>
           </div>
-          <button className="icon-btn icon-btn-danger" onClick={handleLogout} aria-label="Выйти" title="Выйти">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M15 17v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v1" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M10 12h11m0 0-3.5-3.5M21 12l-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <button className="logout-btn" onClick={handleLogout} aria-label="Выйти" title="Выйти">
+            <Icon name="logout" size={20} />
           </button>
         </div>
       </aside>
-      <main className="content">
+      <div className={`sidebar-scrim${open ? " open" : ""}`} onClick={() => setOpen(false)} />
+      <main className="main">
+        <div className="topbar">
+          <div className="topbar-left">
+            <button className="menu-toggle" onClick={() => setOpen((v) => !v)} aria-label="Меню">
+              <Icon name="menu" size={20} />
+            </button>
+            <div className="breadcrumb">Портал ДПО / {isAdmin ? "Администратор" : "Обучающийся"}</div>
+          </div>
+          <span className="role-pill">{isAdmin ? "АДМИНИСТРАТОР" : "ОБУЧАЮЩИЙСЯ"}</span>
+        </div>
         <Outlet />
       </main>
     </div>

@@ -7,15 +7,29 @@ export function formatIsoDate(isoDate: string): string {
   return `${day}.${month}.${year}`;
 }
 
+export const BRANCHES = [
+  "Московский Политех (главный кампус)",
+  "Рязанский институт (филиал)",
+  "Чебоксарский институт (филиал)",
+  "Коломенский институт (филиал)",
+  "Электростальский институт (филиал)",
+  "Тучковский филиал",
+  "Ивантеевский филиал",
+];
+
 export interface User {
   id: number;
   email: string;
   fullName: string;
   phone: string | null;
   birthDate: string | null;
+  branch: string | null;
   role: Role;
   createdAt: string;
 }
+
+export const STUDY_FORMS = ["очная", "очно-заочная", "заочная", "дистанционная"] as const;
+export type StudyForm = (typeof STUDY_FORMS)[number];
 
 export interface Course {
   id: number;
@@ -24,6 +38,9 @@ export interface Course {
   durationFrom: string;
   durationTo: string;
   description: string;
+  studyForm: StudyForm;
+  /** Link to the course in the SDO (distance learning system). Empty when not set. */
+  sdoUrl: string;
   createdAt: string;
 }
 
@@ -41,8 +58,9 @@ export interface Enrollment {
   courseId: number;
   status: EnrollmentStatus;
   contractNumber: string | null;
-  intermediateAttestation: string | null;
-  finalAttestation: string | null;
+  gradePractice: string | null;
+  gradeIntermediate: string | null;
+  gradeFinal: string | null;
   createdAt: string;
 }
 
@@ -62,7 +80,29 @@ export interface ApplicationForm {
   workerCategory: string;
   positionCategory: string;
   industry: string;
+  workExperience: string;
+  branch: string;
 }
+
+export const EMPTY_APPLICATION_FORM: ApplicationForm = {
+  fullName: "",
+  phone: "",
+  email: "",
+  birthDate: "",
+  passport: "",
+  passportIssuedBy: "",
+  addressRegistration: "",
+  addressResidence: "",
+  education: "",
+  snils: "",
+  inn: "",
+  educationLevel: "",
+  workerCategory: "",
+  positionCategory: "",
+  industry: "",
+  workExperience: "",
+  branch: "",
+};
 
 export interface Application {
   id: number;
@@ -79,8 +119,89 @@ export interface Certificate {
   id: number;
   enrollmentId: number;
   type: CertificateType;
+  number: string;
   issuedAt: string;
 }
+
+export type DocumentKind = "passport" | "inn" | "education" | "other";
+
+export const REQUIRED_DOCUMENT_KINDS: { kind: Exclude<DocumentKind, "other">; label: string }[] = [
+  { kind: "passport", label: "Паспорт" },
+  { kind: "inn", label: "ИНН" },
+  { kind: "education", label: "Документ об образовании" },
+];
+
+export interface EnrollmentDocument {
+  id: number;
+  enrollmentId: number;
+  kind: DocumentKind;
+  fileName: string;
+  mime: string;
+  size: number;
+  uploadedAt: string;
+}
+
+export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+
+/** Enrollment together with everything the UI needs to render it, so pages make a single request. */
+export interface EnrollmentDetail extends Enrollment {
+  course: Course;
+  student: { fullName: string; email: string; phone: string | null; branch: string | null };
+  application: Application | null;
+  documents: EnrollmentDocument[];
+  certificates: Certificate[];
+}
+
+export interface BatchResult {
+  updated: number[];
+  skipped: { id: number; reason: string }[];
+}
+
+export type TemplateType = "application" | "contract" | "certificate" | "reference";
+
+export const TEMPLATE_TITLES: Record<TemplateType, string> = {
+  application: "Заявление",
+  contract: "Договор",
+  certificate: "Сертификат",
+  reference: "Справка об обучении",
+};
+
+export interface DocumentTemplate {
+  type: TemplateType;
+  content: string;
+  fileName: string | null;
+  updatedAt: string | null;
+  isDefault: boolean;
+}
+
+export const TEMPLATE_PLACEHOLDERS: { key: string; label: string }[] = [
+  { key: "fullName", label: "Ф. И. О." },
+  { key: "birthDate", label: "Дата рождения" },
+  { key: "phone", label: "Телефон" },
+  { key: "email", label: "E-mail" },
+  { key: "branch", label: "Филиал" },
+  { key: "passport", label: "Паспорт" },
+  { key: "passportIssuedBy", label: "Кем выдан" },
+  { key: "addressRegistration", label: "Адрес регистрации" },
+  { key: "addressResidence", label: "Адрес проживания" },
+  { key: "snils", label: "СНИЛС" },
+  { key: "inn", label: "ИНН" },
+  { key: "education", label: "Сведения об образовании" },
+  { key: "educationLevel", label: "Уровень образования" },
+  { key: "workExperience", label: "Стаж работы" },
+  { key: "workerCategory", label: "Категория работников" },
+  { key: "positionCategory", label: "Категория должности" },
+  { key: "industry", label: "Отрасль экономики" },
+  { key: "courseTitle", label: "Название программы" },
+  { key: "courseHours", label: "Объём, ак. ч." },
+  { key: "studyForm", label: "Форма обучения" },
+  { key: "dateFrom", label: "Начало обучения" },
+  { key: "dateTo", label: "Окончание обучения" },
+  { key: "contractNumber", label: "Номер договора" },
+  { key: "documentNumber", label: "Номер справки / сертификата" },
+  { key: "signDate", label: "Дата подписания" },
+  { key: "today", label: "Дата формирования" },
+];
 
 export const APPLICATION_FIELD_GROUPS: {
   title: string;
@@ -93,6 +214,7 @@ export const APPLICATION_FIELD_GROUPS: {
       { key: "phone", label: "Телефон", hint: "+7 (___) ___-__-__", type: "tel" },
       { key: "email", label: "e-mail", hint: "iv@an.ru", type: "email" },
       { key: "birthDate", label: "Дата рождения", hint: "", type: "date" },
+      { key: "branch", label: "Филиал", hint: "", type: "select", options: BRANCHES },
     ],
   },
   {
@@ -115,6 +237,7 @@ export const APPLICATION_FIELD_GROUPS: {
     title: "Образование и занятость",
     fields: [
       { key: "education", label: "Сведения об образовании", hint: "что окончил и когда, специальность, квалификация", type: "textarea" },
+      { key: "workExperience", label: "Стаж работы", hint: "укажите стаж работы", type: "text" },
       {
         key: "educationLevel",
         label: "Ваш уровень образования",

@@ -10,6 +10,8 @@ import { coursesRouter } from "./routes/courses.js";
 import { enrollmentsRouter } from "./routes/enrollments.js";
 import { applicationsRouter } from "./routes/applications.js";
 import { certificatesRouter } from "./routes/certificates.js";
+import { documentsRouter } from "./routes/documents.js";
+import { templatesRouter } from "./routes/templates.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -25,6 +27,8 @@ app.use("/api/courses", coursesRouter);
 app.use("/api/enrollments", enrollmentsRouter);
 app.use("/api/applications", applicationsRouter);
 app.use("/api/certificates", certificatesRouter);
+app.use("/api/documents", documentsRouter);
+app.use("/api/templates", templatesRouter);
 
 const webDist = path.join(__dirname, "..", "..", "web", "dist");
 if (fs.existsSync(webDist)) {

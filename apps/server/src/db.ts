@@ -25,3 +25,23 @@ function addColumnIfMissing(table: string, column: string, definition: string) {
 
 addColumnIfMissing("users", "phone", "TEXT");
 addColumnIfMissing("users", "birth_date", "TEXT");
+addColumnIfMissing("users", "branch", "TEXT");
+addColumnIfMissing("courses", "study_form", "TEXT NOT NULL DEFAULT 'очно-заочная'");
+addColumnIfMissing("courses", "sdo_url", "TEXT NOT NULL DEFAULT ''");
+addColumnIfMissing("certificates", "number", "TEXT NOT NULL DEFAULT ''");
+
+// The free-text attestation notes became the gradebook (ведомость): practice / intermediate / final grades.
+function renameColumnIfPresent(table: string, from: string, to: string) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (columns.some((c) => c.name === from) && !columns.some((c) => c.name === to)) {
+    db.exec(`ALTER TABLE ${table} RENAME COLUMN ${from} TO ${to}`);
+  }
+}
+renameColumnIfPresent("enrollments", "intermediate_attestation", "grade_intermediate");
+renameColumnIfPresent("enrollments", "final_attestation", "grade_final");
+addColumnIfMissing("enrollments", "grade_practice", "TEXT");
+
+// Certificates issued before numbering existed get a stable number derived from their id.
+db.exec(
+  "UPDATE certificates SET number = (CASE type WHEN 'certificate' THEN 'CERT-' ELSE 'REF-' END) || strftime('%Y', issued_at) || '-' || printf('%04d', id) WHERE number = ''"
+);

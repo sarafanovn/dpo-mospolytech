@@ -1,201 +1,189 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { formatIsoDate, type Course } from "@meridian/shared";
-import { api } from "../../api";
-import { ErrorState } from "../../components/ErrorState";
-import "./admin.css";
+import { useState, type FormEvent } from "react";
+import { STUDY_FORMS, type Course } from "@meridian/shared";
+import { api, type CourseInput } from "../../api";
+import { Loading } from "../../components/Loading";
+import { Modal } from "../../components/Modal";
+import { PageHead } from "../../components/PageHead";
+import { useToast } from "../../ToastContext";
+import { errorMessage, useAsync } from "../../hooks/useAsync";
+import { fmtDate } from "../../lib/format";
 
-const EMPTY = { title: "", hours: 72, durationFrom: "", durationTo: "", description: "" };
+const EMPTY: CourseInput = {
+  title: "",
+  hours: 72,
+  durationFrom: "",
+  durationTo: "",
+  description: "",
+  studyForm: "очно-заочная",
+  sdoUrl: "",
+};
+
+const loadCourses = () => api.courses.list();
 
 export function AdminCourses() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Course | null>(null);
-  const [form, setForm] = useState(EMPTY);
+  const { data, loading, error, reload } = useAsync(loadCourses, "Не удалось загрузить курсы");
+  const { toast, toastError } = useToast();
+  const [modal, setModal] = useState<{ editing: Course | null } | null>(null);
+  const [form, setForm] = useState<CourseInput>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    setLoadError(null);
-    return api.courses.list().then(setCourses).catch((err) => {
-      setLoadError(err instanceof Error ? err.message : "Не удалось загрузить курсы");
-    });
-  }, []);
-
-  useEffect(() => {
-    load().finally(() => setLoading(false));
-  }, [load]);
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(EMPTY);
+  const openModal = (course: Course | null) => {
+    setForm(course ? { ...course } : EMPTY);
     setFormError(null);
-    setModalOpen(true);
+    setModal({ editing: course });
   };
 
-  const openEdit = (course: Course) => {
-    setEditing(course);
-    setForm({
-      title: course.title,
-      hours: course.hours,
-      durationFrom: course.durationFrom,
-      durationTo: course.durationTo,
-      description: course.description,
-    });
-    setFormError(null);
-    setModalOpen(true);
-  };
+  const set = <K extends keyof CourseInput>(key: K, value: CourseInput[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setFormError(null);
     try {
-      if (editing) {
-        await api.courses.update(editing.id, form);
-      } else {
-        await api.courses.create(form);
-      }
-      await load();
-      setModalOpen(false);
+      const payload: CourseInput = {
+        title: form.title,
+        hours: form.hours,
+        durationFrom: form.durationFrom,
+        durationTo: form.durationTo,
+        description: form.description,
+        studyForm: form.studyForm,
+        sdoUrl: form.sdoUrl,
+      };
+      if (modal?.editing) await api.courses.update(modal.editing.id, payload);
+      else await api.courses.create(payload);
+      toast("Курс сохранён");
+      setModal(null);
+      await reload();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Не удалось сохранить курс");
+      setFormError(errorMessage(err, "Не удалось сохранить курс"));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Удалить курс?")) return;
-    setDeleteError(null);
+  const handleDelete = async (course: Course) => {
+    if (!confirm(`Удалить курс «${course.title}»?`)) return;
     try {
-      await api.courses.remove(id);
-      await load();
+      await api.courses.remove(course.id);
+      toast("Курс удалён");
+      await reload();
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "Не удалось удалить курс");
+      toastError(errorMessage(err, "Не удалось удалить курс"));
     }
   };
 
-  if (loading) return <div className="page-loading">Загрузка…</div>;
-
-  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
-
   return (
-    <div>
-      <div className="admin-header">
-        <div>
-          <div className="eyebrow">Администрирование</div>
-          <h1 style={{ fontSize: "1.75rem", marginTop: "0.5rem" }}>Курсы ДПО</h1>
-        </div>
-        <button className="btn btn-primary" onClick={openCreate}>
-          Добавить курс
+    <>
+      <PageHead title="Курсы ДПО" text="Формирование перечня курсов с указанием наименования, сроков обучения, формы обучения и количества часов.">
+        <button className="btn btn-red" onClick={() => openModal(null)}>
+          + Добавить курс
         </button>
-      </div>
-
-      {deleteError && <div style={{ marginBottom: "1.25rem" }}><ErrorState message={deleteError} /></div>}
-
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Название</th>
-            <th>Часы</th>
-            <th>Срок обучения</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {courses.map((c) => (
-            <tr key={c.id}>
-              <td style={{ fontWeight: 600 }}>{c.title}</td>
-              <td>{c.hours}</td>
-              <td>
-                {formatIsoDate(c.durationFrom)} — {formatIsoDate(c.durationTo)}
-              </td>
-              <td>
-                <div className="inline-actions">
-                  <button className="btn btn-ghost" onClick={() => openEdit(c)}>
-                    Изменить
-                  </button>
-                  <button className="btn btn-ghost" onClick={() => handleDelete(c.id)}>
-                    Удалить
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-          {courses.length === 0 && (
-            <tr>
-              <td colSpan={4} style={{ color: "var(--gray-500)" }}>
-                Курсы пока не добавлены.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {modalOpen && (
-        <div className="modal-backdrop" onClick={() => setModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: "1.125rem", marginBottom: "1.25rem" }}>{editing ? "Изменить курс" : "Новый курс"}</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="field">
-                <label>Название программы</label>
-                <input
-                  required
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                />
-              </div>
-              <div className="field">
-                <label>Объём, ак. ч.</label>
-                <input
-                  required
-                  type="number"
-                  min={1}
-                  value={form.hours}
-                  onChange={(e) => setForm((f) => ({ ...f, hours: Number(e.target.value) }))}
-                />
-              </div>
-              <div className="field">
-                <label>Срок обучения (с)</label>
-                <input
-                  required
-                  type="date"
-                  value={form.durationFrom}
-                  onChange={(e) => setForm((f) => ({ ...f, durationFrom: e.target.value }))}
-                />
-              </div>
-              <div className="field">
-                <label>Срок обучения (по)</label>
-                <input
-                  required
-                  type="date"
-                  value={form.durationTo}
-                  onChange={(e) => setForm((f) => ({ ...f, durationTo: e.target.value }))}
-                />
-              </div>
-              <div className="field">
-                <label>Описание</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                />
-              </div>
-              {formError && <div className="error-banner">{formError}</div>}
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>
-                  Отмена
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? "Сохраняем…" : "Сохранить"}
-                </button>
-              </div>
-            </form>
+      </PageHead>
+      <Loading loading={loading} error={error} onRetry={reload}>
+        <section className="card">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Наименование</th>
+                  <th>Сроки</th>
+                  <th>Часы</th>
+                  <th>Форма</th>
+                  <th>СДО</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.map((c) => (
+                  <tr key={c.id}>
+                    <td className="cell-title">{c.title}</td>
+                    <td>
+                      {fmtDate(c.durationFrom)}
+                      <br />
+                      {fmtDate(c.durationTo)}
+                    </td>
+                    <td>{c.hours}</td>
+                    <td>{c.studyForm}</td>
+                    <td>
+                      {c.sdoUrl ? (
+                        <a href={c.sdoUrl} target="_blank" rel="noreferrer">
+                          Ссылка
+                        </a>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="actions">
+                        <button className="btn btn-light btn-sm" onClick={() => openModal(c)}>
+                          Изменить
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c)}>
+                          Удалить
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {data?.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="muted">
+                      Курсы пока не добавлены.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </section>
+      </Loading>
+
+      {modal && (
+        <Modal title={modal.editing ? "Редактировать курс" : "Новый курс ДПО"} onClose={() => setModal(null)}>
+          <form onSubmit={handleSubmit}>
+            <div className="field">
+              <label htmlFor="title">Наименование</label>
+              <input id="title" required value={form.title} onChange={(e) => set("title", e.target.value)} />
+            </div>
+            <div className="grid-2">
+              <div className="field">
+                <label htmlFor="from">Дата начала</label>
+                <input id="from" type="date" required value={form.durationFrom} onChange={(e) => set("durationFrom", e.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="to">Дата окончания</label>
+                <input id="to" type="date" required value={form.durationTo} onChange={(e) => set("durationTo", e.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="hours">Количество часов</label>
+                <input id="hours" type="number" min={1} required value={form.hours} onChange={(e) => set("hours", Number(e.target.value))} />
+              </div>
+              <div className="field">
+                <label htmlFor="form">Форма обучения</label>
+                <select id="form" value={form.studyForm} onChange={(e) => set("studyForm", e.target.value as Course["studyForm"])}>
+                  {STUDY_FORMS.map((f) => (
+                    <option key={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="sdo">Ссылка на курс в СДО</label>
+              <input id="sdo" type="url" placeholder="https://sdo.mospolytech.ru/course/…" value={form.sdoUrl} onChange={(e) => set("sdoUrl", e.target.value)} />
+              <span className="field-hint">Обучающиеся перейдут по ней с баннера программы.</span>
+            </div>
+            <div className="field">
+              <label htmlFor="description">Описание</label>
+              <textarea id="description" value={form.description} onChange={(e) => set("description", e.target.value)} />
+            </div>
+            {formError && <div className="error-banner">{formError}</div>}
+            <button className="btn btn-red" disabled={saving}>
+              {saving ? "Сохраняем…" : "Сохранить"}
+            </button>
+          </form>
+        </Modal>
       )}
-    </div>
+    </>
   );
 }

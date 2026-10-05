@@ -1,107 +1,161 @@
-import { useCallback, useEffect, useState } from "react";
-import type { Certificate, CertificateType, Course, Enrollment } from "@meridian/shared";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import type { CertificateType } from "@meridian/shared";
 import { api } from "../../api";
+import { batchMessage } from "../../lib/batch";
+import { Loading } from "../../components/Loading";
+import { PageHead } from "../../components/PageHead";
 import { StatusBadge } from "../../components/StatusBadge";
-import { ErrorState } from "../../components/ErrorState";
-import "./admin.css";
+import { useSelection } from "../../components/SelectableTable";
+import { useToast } from "../../ToastContext";
+import { useEnrollments } from "../../hooks/useEnrollments";
+import { errorMessage } from "../../hooks/useAsync";
+import { studentName } from "../../lib/progress";
+
+const TYPE_LABEL: Record<CertificateType, string> = { certificate: "Сертификат", reference: "Справка" };
 
 export function AdminCertificates() {
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [certificatesByEnrollment, setCertificatesByEnrollment] = useState<Record<number, Certificate[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<number | null>(null);
-  const [issueError, setIssueError] = useState<string | null>(null);
+  const { data, loading, error, reload } = useEnrollments();
+  const { toast, toastError } = useToast();
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoadError(null);
+  const withApplication = (data ?? []).filter((e) => e.application);
+  const programs = [...new Map(withApplication.map((e) => [e.courseId, e.course])).values()];
+  const activeCourseId = courseId ?? programs[0]?.id ?? null;
+  const rows = withApplication.filter((e) => e.courseId === activeCourseId);
+
+  const selection = useSelection(rows.map((e) => e.id));
+  const chosenIds = rows.filter((e) => selection.selected.has(e.id)).map((e) => e.id);
+
+  const issue = async (type: CertificateType) => {
+    setBusy(true);
     try {
-      const [e, c] = await Promise.all([api.enrollments.list(), api.courses.list()]);
-      const eligible = e.filter((en) => en.status === "approved" || en.status === "completed");
-      setEnrollments(eligible);
-      setCourses(c);
-      const entries = await Promise.all(
-        eligible.map(async (en) => [en.id, await api.certificates.listForEnrollment(en.id)] as const)
-      );
-      setCertificatesByEnrollment(Object.fromEntries(entries));
+      const result = await api.certificates.issue(chosenIds, type);
+      toast(batchMessage(type === "certificate" ? "Сформировано сертификатов" : "Сформировано справок", result));
+      await reload();
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Не удалось загрузить справки и сертификаты");
-    }
-  }, []);
-
-  useEffect(() => {
-    load().finally(() => setLoading(false));
-  }, [load]);
-
-  const handleIssue = async (enrollmentId: number, type: CertificateType) => {
-    setBusyId(enrollmentId);
-    setIssueError(null);
-    try {
-      await api.certificates.create(enrollmentId, type);
-      await load();
-    } catch (err) {
-      setIssueError(err instanceof Error ? err.message : "Не удалось сформировать документ");
+      toastError(errorMessage(err, "Не удалось сформировать документы"));
     } finally {
-      setBusyId(null);
+      setBusy(false);
     }
   };
 
-  if (loading) return <div className="page-loading">Загрузка…</div>;
-
-  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
+  const revoke = async (id: number, number: string) => {
+    if (!confirm(`Удалить документ № ${number}? Он исчезнет у обучающегося.`)) return;
+    try {
+      await api.certificates.remove(id);
+      toast("Документ удалён");
+      await reload();
+    } catch (err) {
+      toastError(errorMessage(err, "Не удалось удалить документ"));
+    }
+  };
 
   return (
-    <div>
-      <div className="eyebrow">Администрирование</div>
-      <h1 className="page-title">Справки и сертификаты</h1>
-
-      {issueError && <div style={{ marginBottom: "1.25rem" }}><ErrorState message={issueError} /></div>}
-
-      <div className="list-stack">
-        {enrollments.map((enrollment) => {
-          const course = courses.find((c) => c.id === enrollment.courseId);
-          const certs = certificatesByEnrollment[enrollment.id] ?? [];
-          return (
-            <div key={enrollment.id} className="card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>{course?.title}</div>
-                  <div style={{ fontSize: "0.8125rem", color: "var(--gray-500)" }}>Заявка №{enrollment.id}</div>
-                </div>
-                <StatusBadge status={enrollment.status} />
-              </div>
-              <div className="inline-actions" style={{ marginBottom: certs.length ? "1rem" : 0 }}>
-                <button className="btn btn-secondary" disabled={busyId === enrollment.id} onClick={() => handleIssue(enrollment.id, "reference")}>
-                  Сформировать справку
-                </button>
-                <button className="btn btn-primary" disabled={busyId === enrollment.id} onClick={() => handleIssue(enrollment.id, "certificate")}>
-                  Сформировать сертификат
-                </button>
-              </div>
-              {certs.length > 0 && (
-                <div className="inline-actions">
-                  {certs.map((cert) => (
-                    <a
-                      key={cert.id}
-                      className="btn btn-ghost"
-                      href={api.certificates.downloadUrl(cert.id)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {cert.type === "certificate" ? "Сертификат" : "Справка"} от{" "}
-                      {new Date(cert.issuedAt).toLocaleDateString("ru-RU")}
-                    </a>
+    <>
+      <PageHead
+        title="Справки и сертификаты"
+        text="Выберите программу и обучающихся — документы будут сформированы автоматически по загруженному шаблону и появятся у обучающихся."
+      />
+      <Loading loading={loading} error={error} onRetry={reload}>
+        {programs.length === 0 ? (
+          <div className="card">
+            <div className="empty">Пока нет обучающихся с заполненным заявлением.</div>
+          </div>
+        ) : (
+          <>
+            <div className="toolbar">
+              <div className="field">
+                <select
+                  aria-label="Программа"
+                  value={activeCourseId ?? ""}
+                  onChange={(e) => {
+                    setCourseId(Number(e.target.value));
+                    selection.clear();
+                  }}
+                >
+                  {programs.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
                   ))}
-                </div>
-              )}
+                </select>
+              </div>
+              <button className="btn btn-light" onClick={() => selection.set(rows.map((e) => e.id))}>
+                Выбрать всю программу
+              </button>
+              <span className="toolbar-spacer" />
+              <span className="muted">
+                Шаблоны можно изменить в разделе <Link to="/admin/templates">«Шаблоны документов»</Link>
+              </span>
             </div>
-          );
-        })}
-        {enrollments.length === 0 && (
-          <p style={{ color: "var(--gray-500)" }}>Нет зачисленных или завершивших обучение студентов.</p>
+
+            {chosenIds.length > 0 && (
+              <div className="selection-bar">
+                <b>Выбрано: {chosenIds.length}</b>
+                <button className="btn btn-red btn-sm" disabled={busy} onClick={() => issue("certificate")}>
+                  Сформировать сертификаты
+                </button>
+                <button className="btn btn-light btn-sm" disabled={busy} onClick={() => issue("reference")}>
+                  Сформировать справки
+                </button>
+              </div>
+            )}
+
+            <section className="card">
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th className="col-check">
+                        <input type="checkbox" aria-label="Выбрать всех" checked={selection.allSelected} onChange={selection.toggleAll} />
+                      </th>
+                      <th>Обучающийся</th>
+                      <th>Статус</th>
+                      <th>Выданные документы</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((e) => (
+                      <tr key={e.id}>
+                        <td className="col-check">
+                          <input type="checkbox" aria-label={`Выбрать ${studentName(e)}`} checked={selection.selected.has(e.id)} onChange={() => selection.toggle(e.id)} />
+                        </td>
+                        <td className="cell-title">{studentName(e)}</td>
+                        <td>
+                          <StatusBadge status={e.status} />
+                        </td>
+                        <td>
+                          {e.certificates.length === 0 && <span className="muted">—</span>}
+                          <div className="actions">
+                            {e.certificates.map((c) => (
+                              <span key={c.id} className="tag">
+                                <a href={api.certificates.url(c.id)} target="_blank" rel="noreferrer">
+                                  {TYPE_LABEL[c.type]} № {c.number}
+                                </a>
+                                <button
+                                  type="button"
+                                  className="icon-btn"
+                                  style={{ width: "1.25rem", height: "1.25rem", border: 0, background: "transparent" }}
+                                  onClick={() => revoke(c.id, c.number)}
+                                  aria-label={`Удалить документ ${c.number}`}
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
         )}
-      </div>
-    </div>
+      </Loading>
+    </>
   );
 }

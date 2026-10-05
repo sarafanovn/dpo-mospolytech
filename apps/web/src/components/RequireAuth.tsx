@@ -6,6 +6,6 @@ export function RequireAuth({ role, children }: { role: "student" | "admin"; chi
   const { user, loading } = useAuth();
   if (loading) return <div className="page-loading">Загрузка…</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== role) return <Navigate to={user.role === "admin" ? "/admin/courses" : "/student/courses"} replace />;
+  if (user.role !== role) return <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />;
   return <>{children}</>;
 }
