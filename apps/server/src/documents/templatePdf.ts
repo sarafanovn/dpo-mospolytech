@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { PDFDocument, rgb } from "pdf-lib";
 import { embedCyrillicFonts } from "./fonts.js";
 import { formatSignedAt } from "./formatDate.js";
+import { LAYOUT_MARKER, LayoutRenderer, type SignatureStamp } from "./layoutPdf.js";
 
 const PAGE_SIZE: [number, number] = [595.28, 841.89]; // A4
 const MARGIN = 56;
@@ -55,6 +56,8 @@ export async function renderTemplatePdf(
   stamps: PdfStamp[],
   signatureSeed: string
 ): Promise<Uint8Array> {
+  if (content.trimStart().startsWith(LAYOUT_MARKER)) return renderLayoutPdf(content, values, stamps, signatureSeed);
+
   const pdfDoc = await PDFDocument.create();
   const { regular, bold } = await embedCyrillicFonts(pdfDoc);
   let page = pdfDoc.addPage(PAGE_SIZE);
@@ -124,4 +127,23 @@ export async function renderTemplatePdf(
   }
 
   return pdfDoc.save();
+}
+
+/**
+ * Templates that reproduce the university's Word forms. The left stamp is the student's signature and the
+ * right one the executor's; a template places them with "@sign student" / "@sign executor".
+ */
+function renderLayoutPdf(content: string, values: Record<string, string>, stamps: PdfStamp[], signatureSeed: string) {
+  const signatures: Record<string, SignatureStamp> = {};
+  for (const stamp of stamps) {
+    signatures[stamp.side === "left" ? "student" : "executor"] = {
+      title: stamp.title,
+      name: stamp.name,
+      signedAt: stamp.signedAt,
+      id: signatureId(signatureSeed, stamp.side, stamp.signedAt ?? ""),
+    };
+  }
+  // Unknown placeholders stay visible so typos in an edited template are easy to spot; empty values stay blank.
+  const fill = (text: string) => text.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key: string) => (key in values ? values[key] : match));
+  return LayoutRenderer.render(content, fill, signatures);
 }

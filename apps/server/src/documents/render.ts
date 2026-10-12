@@ -21,9 +21,9 @@ export function renderContract(detail: EnrollmentDetail): Promise<Uint8Array> {
   const app = detail.application;
   const form = app?.form ?? EMPTY_FORM;
   const stamps: PdfStamp[] = [
-    { title: `Заказчик: ${form.fullName}`, name: form.fullName, signedAt: app?.signedAt ?? null, side: "left" },
+    { title: "Обучающийся", name: form.fullName, signedAt: app?.signedAt ?? null, side: "left" },
     {
-      title: "Исполнитель: Московский Политех",
+      title: "Университет",
       name: "Московский Политех",
       signedAt: app?.signedByExecutorAt ?? null,
       side: "right",
@@ -31,7 +31,11 @@ export function renderContract(detail: EnrollmentDetail): Promise<Uint8Array> {
   ];
   return renderTemplatePdf(
     getTemplateContent("contract"),
-    buildValues(form, detail.course, { contractNumber: detail.contractNumber, signedAt: app?.signedAt }),
+    buildValues(form, detail.course, {
+      contractNumber: detail.contractNumber,
+      contractDate: detail.contractRegisteredAt,
+      signedAt: app?.signedAt,
+    }),
     stamps,
     `contract|${detail.id}|${detail.contractNumber ?? ""}`
   );

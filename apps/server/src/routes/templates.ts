@@ -108,8 +108,8 @@ templatesRouter.get("/:type/preview", async (req, res) => {
       ? [{ title: "Обучающийся", name: SAMPLE_FORM.fullName, signedAt: now, side: "left" }]
       : type === "contract"
         ? [
-            { title: `Заказчик: ${SAMPLE_FORM.fullName}`, name: SAMPLE_FORM.fullName, signedAt: now, side: "left" },
-            { title: "Исполнитель: Московский Политех", name: "Московский Политех", signedAt: now, side: "right" },
+            { title: "Обучающийся", name: SAMPLE_FORM.fullName, signedAt: now, side: "left" },
+            { title: "Университет", name: "Московский Политех", signedAt: now, side: "right" },
           ]
         : [];
   const pdf = await renderTemplatePdf(

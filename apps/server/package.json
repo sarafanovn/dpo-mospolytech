@@ -10,6 +10,7 @@
     "seed:admin": "tsx src/seedAdmin.ts"
   },
   "dependencies": {
+    "@expo-google-fonts/tinos": "^0.4.2",
     "@meridian/shared": "*",
     "@pdf-lib/fontkit": "^1.1.1",
     "bcryptjs": "^2.4.3",

@@ -19,3 +19,27 @@ export async function embedCyrillicFonts(
   const bold = await pdfDoc.embedFont(boldBytes);
   return { regular, bold };
 }
+
+// Tinos is metric-compatible with Times New Roman (the font of the university's Word templates),
+// so lines wrap exactly as they do in the .docx files, and unlike Times it is freely redistributable.
+const tinosDir = path.dirname(require.resolve("@expo-google-fonts/tinos/package.json"));
+const tinosFile = (style: string) => path.join(tinosDir, style, `Tinos_${style}.ttf`);
+
+export interface SerifFonts {
+  regular: PDFFont;
+  bold: PDFFont;
+  italic: PDFFont;
+  boldItalic: PDFFont;
+}
+
+export async function embedSerifFonts(pdfDoc: PDFDocument): Promise<SerifFonts> {
+  pdfDoc.registerFontkit(fontkit);
+  const embed = (style: string) => pdfDoc.embedFont(fs.readFileSync(tinosFile(style)));
+  const [regular, bold, italic, boldItalic] = await Promise.all([
+    embed("400Regular"),
+    embed("700Bold"),
+    embed("400Regular_Italic"),
+    embed("700Bold_Italic"),
+  ]);
+  return { regular, bold, italic, boldItalic };
+}
