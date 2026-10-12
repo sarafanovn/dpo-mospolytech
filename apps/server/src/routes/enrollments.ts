@@ -53,6 +53,14 @@ function nextContractNumber(): string {
   return `${prefix}${String(seq).padStart(4, "0")}`;
 }
 
+function assignContractNumber(enrollmentId: number) {
+  db.prepare("UPDATE enrollments SET contract_number = ?, contract_registered_at = ? WHERE id = ?").run(
+    nextContractNumber(),
+    new Date().toISOString(),
+    enrollmentId
+  );
+}
+
 function runBatch(
   ids: number[],
   action: (enrollment: EnrollmentRow, application: ApplicationRow | undefined) => string | null
@@ -87,7 +95,7 @@ enrollmentsRouter.post("/contracts/register", requireAuth, requireRole("admin"),
     runBatch(parsed.data.enrollmentIds, (enrollment, application) => {
       if (!application?.signed_at) return "Обучающийся ещё не подписал заявление";
       if (enrollment.contract_number) return "Договор уже зарегистрирован";
-      db.prepare("UPDATE enrollments SET contract_number = ? WHERE id = ?").run(nextContractNumber(), enrollment.id);
+      assignContractNumber(enrollment.id);
       return null;
     })
   );
@@ -106,7 +114,7 @@ enrollmentsRouter.post("/contracts/sign", requireAuth, requireRole("admin"), (re
       if (!application?.signed_at) return "Обучающийся ещё не подписал заявление";
       if (application.signed_by_executor_at) return "Договор уже подписан";
       if (!enrollment.contract_number) {
-        db.prepare("UPDATE enrollments SET contract_number = ? WHERE id = ?").run(nextContractNumber(), enrollment.id);
+        assignContractNumber(enrollment.id);
       }
       db.prepare("UPDATE applications SET signed_by_executor_at = ? WHERE id = ?").run(signedAt, application.id);
       if (enrollment.status === "signed") {
@@ -194,9 +202,11 @@ enrollmentsRouter.patch("/:id", requireAuth, requireRole("admin"), (req, res) =>
     res.status(404).json({ error: "Запись не найдена" });
     return;
   }
-  db.prepare("UPDATE enrollments SET status = ?, contract_number = ? WHERE id = ?").run(
+  const contractNumber = parsed.data.contractNumber ?? existing.contract_number;
+  db.prepare("UPDATE enrollments SET status = ?, contract_number = ?, contract_registered_at = ? WHERE id = ?").run(
     parsed.data.status ?? existing.status,
-    parsed.data.contractNumber ?? existing.contract_number,
+    contractNumber,
+    contractNumber ? (existing.contract_registered_at ?? new Date().toISOString()) : null,
     req.params.id
   );
   const row = db.prepare("SELECT * FROM enrollments WHERE id = ?").get(req.params.id) as EnrollmentRow;

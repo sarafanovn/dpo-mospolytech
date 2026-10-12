@@ -17,6 +17,7 @@ import { Overview } from "./pages/admin/Overview";
 import { AdminCourses } from "./pages/admin/Courses";
 import { AdminApplications } from "./pages/admin/Applications";
 import { PersonalFiles } from "./pages/admin/PersonalFiles";
+import { ContractRegistry } from "./pages/admin/ContractRegistry";
 import { Attestation } from "./pages/admin/Attestation";
 import { AdminCertificates } from "./pages/admin/Certificates";
 import { Templates } from "./pages/admin/Templates";
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/admin/courses" element={<AdminCourses />} />
             <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/files" element={<PersonalFiles />} />
+            <Route path="/admin/contracts" element={<ContractRegistry />} />
             <Route path="/admin/attestation" element={<Attestation />} />
             <Route path="/admin/certificates" element={<AdminCertificates />} />
             <Route path="/admin/templates" element={<Templates />} />

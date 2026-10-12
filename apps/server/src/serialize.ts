@@ -45,6 +45,7 @@ export interface EnrollmentRow {
   course_id: number;
   status: EnrollmentStatus;
   contract_number: string | null;
+  contract_registered_at: string | null;
   grade_practice: string | null;
   grade_intermediate: string | null;
   grade_final: string | null;
@@ -114,6 +115,7 @@ export function toEnrollment(row: EnrollmentRow): Enrollment {
     courseId: row.course_id,
     status: row.status,
     contractNumber: row.contract_number,
+    contractRegisteredAt: row.contract_registered_at,
     gradePractice: row.grade_practice,
     gradeIntermediate: row.grade_intermediate,
     gradeFinal: row.grade_final,

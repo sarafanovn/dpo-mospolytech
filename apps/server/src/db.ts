@@ -28,6 +28,7 @@ addColumnIfMissing("users", "birth_date", "TEXT");
 addColumnIfMissing("users", "branch", "TEXT");
 addColumnIfMissing("courses", "study_form", "TEXT NOT NULL DEFAULT 'очно-заочная'");
 addColumnIfMissing("courses", "sdo_url", "TEXT NOT NULL DEFAULT ''");
+addColumnIfMissing("enrollments", "contract_registered_at", "TEXT");
 addColumnIfMissing("certificates", "number", "TEXT NOT NULL DEFAULT ''");
 
 // The free-text attestation notes became the gradebook (ведомость): practice / intermediate / final grades.
@@ -44,4 +45,9 @@ addColumnIfMissing("enrollments", "grade_practice", "TEXT");
 // Certificates issued before numbering existed get a stable number derived from their id.
 db.exec(
   "UPDATE certificates SET number = (CASE type WHEN 'certificate' THEN 'CERT-' ELSE 'REF-' END) || strftime('%Y', issued_at) || '-' || printf('%04d', id) WHERE number = ''"
+);
+
+// Contracts numbered before the registry existed get the enrollment date as their registration date.
+db.exec(
+  "UPDATE enrollments SET contract_registered_at = created_at WHERE contract_number IS NOT NULL AND contract_registered_at IS NULL"
 );

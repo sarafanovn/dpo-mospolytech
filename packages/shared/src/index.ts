@@ -58,6 +58,8 @@ export interface Enrollment {
   courseId: number;
   status: EnrollmentStatus;
   contractNumber: string | null;
+  /** When the contract number was assigned (the contract registry date). */
+  contractRegisteredAt: string | null;
   gradePractice: string | null;
   gradeIntermediate: string | null;
   gradeFinal: string | null;

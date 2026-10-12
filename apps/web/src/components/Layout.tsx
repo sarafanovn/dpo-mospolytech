@@ -26,6 +26,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/admin/courses", label: "Курсы ДПО", icon: "courses" },
   { to: "/admin/applications", label: "Заявки", icon: "list" },
   { to: "/admin/files", label: "Личные дела", icon: "file" },
+  { to: "/admin/contracts", label: "Реестр договоров", icon: "template" },
   { to: "/admin/attestation", label: "Аттестация", icon: "grade" },
   { to: "/admin/certificates", label: "Справки и сертификаты", icon: "award" },
   { to: "/admin/templates", label: "Шаблоны документов", icon: "template" },

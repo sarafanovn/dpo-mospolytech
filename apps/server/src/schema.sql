@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
   status TEXT NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft', 'submitted', 'signed', 'contract_registered', 'approved', 'completed')),
   contract_number TEXT,
+  contract_registered_at TEXT,
   grade_practice TEXT,
   grade_intermediate TEXT,
   grade_final TEXT,
